@@ -128,7 +128,7 @@ def train(model=None, ite=200):
 
     # Images, and their labels, are returned in batches of the size defined above by `batch_size`.
     # The `image_batch` variable is a tuple, containing the augmentented images and their corresponding labels.
-    #
+    #m
     # To see the label of the first image returned by the generator you can use the array's index:
 
     print(labels[0])
@@ -140,7 +140,7 @@ def train(model=None, ite=200):
     # `g`, to the model's fit function.
     # In Keras, if a generator is used we used the `fit_generator()` function
     # as opposed to the standard `fit()` function.
-    # Also, the steps per epoch should roughly equal the total number of images
+    #Also, the steps per epoch should roughly equal the total number of images
     # in your dataset divided by the `batch_size`.
     #
     # Training the network over 5 epochs, we get the following output:
@@ -153,7 +153,7 @@ def train(model=None, ite=200):
 
         if os.path.exists(DEFAULT_WEIGHT_PATH) is False:
             os.makedirs(DEFAULT_WEIGHT_PATH)
-        model.save('/my_model.h5')
+        model.save(DEFAULT_WEIGHT_PATH+"/my_model.h5")
         print('saved model')
 
 
@@ -208,9 +208,13 @@ if __name__ == '__main__':
     elif args.command == "evaluate":
         assert args.model is not None, "Please load a model..."
         evaluate(args.model)
-    # elif args.command == "test":
-    #     assert args.model is not None, "Please load a model..."
+    elif args.command == "debug":
+        model = model_create()
+        model.save(DEFAULT_WEIGHT_PATH+"/my_model.h5")
+
+	#     assert args.model is not None, "Please load a model..."
     #     test(args.model)
     # elif args.command == "plot":
     #     assert args.model is not None, "Please load a model..."
-    #     plot(args.model)
+    #     plot(args.model)model.save(DEFAULT_WEIGHT_PATH+"/my_model.h5")
+
