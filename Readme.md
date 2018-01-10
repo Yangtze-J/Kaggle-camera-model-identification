@@ -1,8 +1,7 @@
 # **ImgRec Keras**
 
-## **Run**
 
-#### **Train part**
+### **Train part**
 
 - If you want to **train from a existing model**, please give the model path.
 
@@ -35,7 +34,7 @@ Example:
 
 Please note that the model will be saved every 10 iterations
 
-#### **Evaluate part**
+### **Evaluate part**
 
 Example:
 
@@ -63,7 +62,7 @@ The loss is:  0.0034373
 The accuracy is:  99.92222%
 ```
 
-#### **Test part** - Not finish now
+### **Test part** - Not finish now
 
 Please note that you need to give the model path to test.
 
@@ -87,7 +86,7 @@ There is a loop of addition test, if you want to end, please press CTRL + C
 Press `CTRL+C` can exit.
 
 
-#### **Model visualization** - Not finish now
+### **Model visualization** - Not finish now
 
 Example:
 
