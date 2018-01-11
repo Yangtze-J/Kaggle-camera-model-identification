@@ -19,6 +19,7 @@ from keras.models import Sequential
 from keras.models import load_model
 from keras.layers import Dense, Dropout, Flatten
 from keras.layers import Conv2D, MaxPooling2D
+from keras.preprocessing.image import ImageDataGenerator
 import numpy as np
 
 
@@ -26,6 +27,7 @@ import numpy as np
 ROOT_DIR = os.getcwd()
 DEFAULT_WEIGHT_PATH = os.path.join(ROOT_DIR, "model")
 DEFAULT_TRAIN_PATH = os.path.join(ROOT_DIR, "train")
+DEFAULT_TEST_PATH = os.path.join(ROOT_DIR, "test")
 input_image_shape = (64, 64, 3)
 batch_size = 32
 evaluate_size = 100
@@ -177,6 +179,21 @@ def evaluate(model):
     loss, acc = model.evaluate(images, labels,
                                batch_size=evaluate_size)
     print("The loss is: {0:>10.5}\nThe accuracy is: {1:>10.5%}".format(loss, acc))
+    
+
+def predict(model):
+    datagen = ImageDataGenerator(rescale=1. / 255)
+    model = load_model(model)
+    generator = datagen.flow_from_directory(
+        'test',
+        target_size=(64, 64),
+        batch_size=32,
+        class_mode=None,  # only data, no labels
+        shuffle=False)
+    probabilities = model.predict_generator(generator, 20)
+    #np.save(open(' probabilities.npy', 'w'),  probabilities)
+    print("The label is: %s"%(probabilities))
+    print(probabilities[0])
 
 
 # ## Summary
@@ -208,6 +225,9 @@ if __name__ == '__main__':
     elif args.command == "evaluate":
         assert args.model is not None, "Please load a model..."
         evaluate(args.model)
+    elif args.command == "predict":
+        assert args.model is not None, "Please load a model..."
+        predict(args.model)
     elif args.command == "debug":
         model = model_create()
         model.save(DEFAULT_WEIGHT_PATH+"/my_model.h5")
@@ -217,4 +237,3 @@ if __name__ == '__main__':
     # elif args.command == "plot":
     #     assert args.model is not None, "Please load a model..."
     #     plot(args.model)model.save(DEFAULT_WEIGHT_PATH+"/my_model.h5")
-
