@@ -15,6 +15,9 @@
 import Augmentor
 import keras
 import os
+import csv
+import random
+from PIL import Image
 from keras.models import Sequential
 from keras.models import load_model
 from keras.layers import Dense, Dropout, Flatten
@@ -31,6 +34,9 @@ DEFAULT_TEST_PATH = os.path.join(ROOT_DIR, "test")
 input_image_shape = (64, 64, 3)
 batch_size = 32
 evaluate_size = 100
+pred_num_per_img = 10
+
+label_list = sorted(os.listdir(DEFAULT_TRAIN_PATH), reverse=False)
 
 
 def model_create():
@@ -182,19 +188,44 @@ def evaluate(model):
     
 
 def predict(model):
-    datagen = ImageDataGenerator(rescale=1. / 255)
     model = load_model(model)
-    generator = datagen.flow_from_directory(
-        'test',
-        target_size=(64, 64),
-        batch_size=32,
-        class_mode=None,  # only data, no labels
-        shuffle=False)
-    probabilities = model.predict_generator(generator, 20)
-    #np.save(open(' probabilities.npy', 'w'),  probabilities)
-    print("The label is: %s"%(probabilities))
-    print(probabilities[0])
+    img_name_list = os.listdir(DEFAULT_TEST_PATH)
+    result = []
+    name = []
+    for i, img_name in enumerate(img_name_list):
+        im = Image.open(DEFAULT_TEST_PATH + "/" + img_name)
+        print("predict " + img_name)
+        w, h = im.size
+        width = input_image_shape[0]
+        height = input_image_shape[1]
 
+        # Zero samples list
+        pred_img_list = []
+        # Generate random samples from every test image.
+        for _ in range(pred_num_per_img):
+            x = random.randint(0, w - width - 1)
+            y = random.randint(0, h - height - 1)
+            img = im.crop((x, y, x+width, y+width))
+            # img.show()
+            imarray = np.array(img)
+            pred_img_list.append(imarray)
+        # Test samples and get the most frequent result as the best
+        pred_img_list = np.array(pred_img_list)
+        pred = model.predict(x=pred_img_list, batch_size=pred_num_per_img, verbose=1)
+        pred = np.argmax(np.bincount(np.argmax(pred, axis=1)))
+
+        # Append result and image name
+
+        result.append(label_list[pred])
+        name.append(img_name)
+    # Save csv file as a result.
+    with open('result.csv', 'w', newline='') as csvfile:
+        spamwriter = csv.writer(csvfile)
+        spamwriter.writerow(['fname', 'camera'])
+        for i in range(len(result)):
+            spamwriter.writerow([name[i], result[i]])
+    print("Finished")
+    
 
 # ## Summary
 # 
@@ -228,9 +259,9 @@ if __name__ == '__main__':
     elif args.command == "predict":
         assert args.model is not None, "Please load a model..."
         predict(args.model)
-    elif args.command == "debug":
-        model = model_create()
-        model.save(DEFAULT_WEIGHT_PATH+"/my_model.h5")
+    # elif args.command == "debug":
+    #     model = model_create()
+    #     model.save(DEFAULT_WEIGHT_PATH+"/my_model.h5")
 
 	#     assert args.model is not None, "Please load a model..."
     #     test(args.model)
