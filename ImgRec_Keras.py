@@ -31,7 +31,7 @@ ROOT_DIR = os.getcwd()
 DEFAULT_WEIGHT_PATH = os.path.join(ROOT_DIR, "model")
 DEFAULT_TRAIN_PATH = os.path.join(ROOT_DIR, "train")
 DEFAULT_TEST_PATH = os.path.join(ROOT_DIR, "test")
-input_image_shape = (64, 64, 3)
+input_image_shape = (224, 224, 3)
 batch_size = 32
 evaluate_size = 100
 pred_num_per_img = 10
@@ -48,7 +48,7 @@ def model_create():
     np.random.seed(seed)  
   
     model = Sequential()  
-    model.add(Conv2D(64,(3,3),strides=(1,1),input_shape=(224,224,3),padding='same',activation='relu',kernel_initializer='uniform'))  
+    model.add(Conv2D(64,(3,3),strides=(1,1),input_shape=input_image_shap,padding='same',activation='relu',kernel_initializer='uniform'))  
     model.add(Conv2D(64,(3,3),strides=(1,1),padding='same',activation='relu',kernel_initializer='uniform'))  
     model.add(MaxPooling2D(pool_size=(2,2)))  
     model.add(Conv2D(128,(3,2),strides=(1,1),padding='same',activation='relu',kernel_initializer='uniform'))  
