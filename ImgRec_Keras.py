@@ -74,7 +74,7 @@ def model_create():
     model.add(Dense(num_classes,activation='softmax'))  
     model.compile(loss='categorical_crossentropy',optimizer='sgd',metrics=['accuracy'])  
     model.summary()  
-
+    return model
     # model.add(Conv2D(32, kernel_size=(3, 3),
     #                  activation='relu',
     #                  input_shape=input_shape))
@@ -93,8 +93,7 @@ def model_create():
     #               metrics=['accuracy'])
 
     # You can view a summary of the network using the `summary()` function:
-    model.summary()
-    return model
+   
 
 
 def train(model=None, ite=200):
