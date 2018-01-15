@@ -55,7 +55,7 @@ def model_create():
     model.add(Flatten())  
     model.add(Dense(100,activation='relu'))  
     model.add(Dense(num_classes,activation='softmax'))  
-    model.compile(optimizer='adam',loss='categorical_crossentropy',metrics=['accuracy'])  
+    model.compile(optimizer='sgd',loss='categorical_crossentropy',metrics=['accuracy'])  
     model.summary()    
     return model
 
