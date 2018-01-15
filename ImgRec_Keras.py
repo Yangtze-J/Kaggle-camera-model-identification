@@ -48,8 +48,8 @@ def model_create():
     np.random.seed(seed)  
     
     model = Sequential()  
-	model.add(Conv2D(32,(5,5),strides=(1,1),input_shape=input_image_shape,padding='valid',activation='relu',kernel_initializer='uniform'))  
-	model.add(MaxPooling2D(pool_size=(2,2)))  
+    model.add(Conv2D(32,(5,5),strides=(1,1),input_shape=input_image_shape,padding='valid',activation='relu',kernel_initializer='uniform'))  
+    model.add(MaxPooling2D(pool_size=(2,2)))  
 	model.add(Conv2D(64,(5,5),strides=(1,1),padding='valid',activation='relu',kernel_initializer='uniform'))  
 	model.add(MaxPooling2D(pool_size=(2,2)))  
 	model.add(Flatten())  
