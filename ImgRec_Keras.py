@@ -31,7 +31,7 @@ ROOT_DIR = os.getcwd()
 DEFAULT_WEIGHT_PATH = os.path.join(ROOT_DIR, "model")
 DEFAULT_TRAIN_PATH = os.path.join(ROOT_DIR, "train")
 DEFAULT_TEST_PATH = os.path.join(ROOT_DIR, "test")
-input_image_shape = (64, 64, 3)
+input_image_shape = (224, 224, 3)
 batch_size = 32
 evaluate_size = 100
 pred_num_per_img = 10
@@ -44,30 +44,39 @@ def model_create():
 
     num_classes = 10
 
-    model = Sequential()
-    model.add(Conv2D(32, kernel_size=(3, 3),
-                     activation='relu',
-                     input_shape=input_image_shape))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Conv2D(32, kernel_size=(3, 3),
-                     activation='relu'))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Conv2D(64, kernel_size=(3, 3),
-                     activation='relu'))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-
-    model.add(Flatten())  # this converts our 3D feature maps to 1D feature vectors
-    model.add(Dense(64, activation='relu'))
-    model.add(Dropout(0.5))
-    model.add(Dense(num_classes, activation='softmax'))
-
-    model.compile(loss='categorical_crossentropy',
-                  optimizer='sgd',
-                  metrics=['accuracy'])
+    seed = 7  
+    np.random.seed(seed)  
+  
+    model = Sequential()  
+    model.add(Conv2D(64,(3,3),strides=(1,1),input_shape=input_image_shape,padding='same',activation='relu',kernel_initializer='uniform'))
+    model.add(Conv2D(64,(3,3),strides=(1,1),padding='same',activation='relu',kernel_initializer='uniform'))  
+    model.add(MaxPooling2D(pool_size=(2,2)))  
+    model.add(Conv2D(128,(3,2),strides=(1,1),padding='same',activation='relu',kernel_initializer='uniform'))  
+    model.add(Conv2D(128,(3,3),strides=(1,1),padding='same',activation='relu',kernel_initializer='uniform'))  
+    model.add(MaxPooling2D(pool_size=(2,2)))  
+    model.add(Conv2D(256,(3,3),strides=(1,1),padding='same',activation='relu',kernel_initializer='uniform'))  
+    model.add(Conv2D(256,(3,3),strides=(1,1),padding='same',activation='relu',kernel_initializer='uniform'))  
+    model.add(Conv2D(256,(3,3),strides=(1,1),padding='same',activation='relu',kernel_initializer='uniform'))  
+    model.add(MaxPooling2D(pool_size=(2,2)))  
+    model.add(Conv2D(512,(3,3),strides=(1,1),padding='same',activation='relu',kernel_initializer='uniform'))  
+    model.add(Conv2D(512,(3,3),strides=(1,1),padding='same',activation='relu',kernel_initializer='uniform'))  
+    model.add(Conv2D(512,(3,3),strides=(1,1),padding='same',activation='relu',kernel_initializer='uniform'))  
+    model.add(MaxPooling2D(pool_size=(2,2)))  
+    model.add(Conv2D(512,(3,3),strides=(1,1),padding='same',activation='relu',kernel_initializer='uniform'))  
+    model.add(Conv2D(512,(3,3),strides=(1,1),padding='same',activation='relu',kernel_initializer='uniform'))  
+    model.add(Conv2D(512,(3,3),strides=(1,1),padding='same',activation='relu',kernel_initializer='uniform'))  
+    model.add(MaxPooling2D(pool_size=(2,2)))  
+    model.add(Flatten())  
+    model.add(Dense(4096,activation='relu'))  
+    model.add(Dropout(0.5))  
+    model.add(Dense(4096,activation='relu'))  
+    model.add(Dropout(0.5))  
+    model.add(Dense(num_classes,activation='softmax'))  
+    model.compile(loss='categorical_crossentropy', optimizer='sgd', metrics=['accuracy'])
+    model.summary()  
+    return model
 
     # You can view a summary of the network using the `summary()` function:
-    model.summary()
-    return model
 
 
 def train(model=None, ite=200):
