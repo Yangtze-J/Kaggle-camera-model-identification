@@ -203,9 +203,9 @@ def predict(model):
         pred = np.argmax(np.bincount(np.argmax(pred, axis=1)))
 
         # Append result and image name
-
         result.append(label_list[pred])
         name.append(img_name)
+
     # Save csv file as a result.
     with open('result.csv', 'w', newline='') as csvfile:
         spamwriter = csv.writer(csvfile)
