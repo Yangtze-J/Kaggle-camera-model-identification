@@ -15,6 +15,9 @@
 import Augmentor
 import keras
 import os
+import csv
+import random
+from PIL import Image
 from keras.models import Sequential
 from keras.models import load_model
 from keras.layers import Dense, Dropout, Flatten
@@ -28,9 +31,12 @@ ROOT_DIR = os.getcwd()
 DEFAULT_WEIGHT_PATH = os.path.join(ROOT_DIR, "model")
 DEFAULT_TRAIN_PATH = os.path.join(ROOT_DIR, "train")
 DEFAULT_TEST_PATH = os.path.join(ROOT_DIR, "test")
-input_image_shape = (64, 64, 3)
+input_image_shape = (224, 224, 3)
 batch_size = 32
 evaluate_size = 100
+pred_num_per_img = 10
+
+label_list = sorted(os.listdir(DEFAULT_TRAIN_PATH), reverse=False)
 
 
 def model_create():
@@ -38,47 +44,39 @@ def model_create():
 
     num_classes = 10
 
-    model = Sequential()
-    model.add(Conv2D(32, kernel_size=(3, 3),
-                     activation='relu',
-                     input_shape=input_image_shape))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Conv2D(32, kernel_size=(3, 3),
-                     activation='relu'))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Conv2D(64, kernel_size=(3, 3),
-                     activation='relu'))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-
-    model.add(Flatten())  # this converts our 3D feature maps to 1D feature vectors
-    model.add(Dense(64, activation='relu'))
-    model.add(Dropout(0.5))
-    model.add(Dense(num_classes, activation='sigmoid'))
-
-    model.compile(loss='binary_crossentropy',
-                  optimizer='rmsprop',
-                  metrics=['accuracy'])
-
-    # model.add(Conv2D(32, kernel_size=(3, 3),
-    #                  activation='relu',
-    #                  input_shape=input_shape))
-    # model.add(Conv2D(64, (3, 3), activation='relu'))
-    # model.add(MaxPooling2D(pool_size=(2, 2)))
-    # model.add(Dropout(0.25))
-    # model.add(Flatten())
-    # model.add(Dense(128, activation='relu'))
-    # model.add(Dropout(0.5))
-    # model.add(Dense(num_classes, activation='softmax'))
-
-    # Once a network has been defined, you can compile it so that the model is ready to be trained with data:
-
-    # model.compile(loss=keras.losses.categorical_crossentropy,
-    #               optimizer=keras.optimizers.Adadelta(),
-    #               metrics=['accuracy'])
+    seed = 7  
+    np.random.seed(seed)  
+  
+    model = Sequential()  
+    model.add(Conv2D(64,(3,3),strides=(1,1),input_shape=input_image_shape,padding='same',activation='relu',kernel_initializer='uniform'))
+    model.add(Conv2D(64,(3,3),strides=(1,1),padding='same',activation='relu',kernel_initializer='uniform'))  
+    model.add(MaxPooling2D(pool_size=(2,2)))  
+    model.add(Conv2D(128,(3,2),strides=(1,1),padding='same',activation='relu',kernel_initializer='uniform'))  
+    model.add(Conv2D(128,(3,3),strides=(1,1),padding='same',activation='relu',kernel_initializer='uniform'))  
+    model.add(MaxPooling2D(pool_size=(2,2)))  
+    model.add(Conv2D(256,(3,3),strides=(1,1),padding='same',activation='relu',kernel_initializer='uniform'))  
+    model.add(Conv2D(256,(3,3),strides=(1,1),padding='same',activation='relu',kernel_initializer='uniform'))  
+    model.add(Conv2D(256,(3,3),strides=(1,1),padding='same',activation='relu',kernel_initializer='uniform'))  
+    model.add(MaxPooling2D(pool_size=(2,2)))  
+    model.add(Conv2D(512,(3,3),strides=(1,1),padding='same',activation='relu',kernel_initializer='uniform'))  
+    model.add(Conv2D(512,(3,3),strides=(1,1),padding='same',activation='relu',kernel_initializer='uniform'))  
+    model.add(Conv2D(512,(3,3),strides=(1,1),padding='same',activation='relu',kernel_initializer='uniform'))  
+    model.add(MaxPooling2D(pool_size=(2,2)))  
+    model.add(Conv2D(512,(3,3),strides=(1,1),padding='same',activation='relu',kernel_initializer='uniform'))  
+    model.add(Conv2D(512,(3,3),strides=(1,1),padding='same',activation='relu',kernel_initializer='uniform'))  
+    model.add(Conv2D(512,(3,3),strides=(1,1),padding='same',activation='relu',kernel_initializer='uniform'))  
+    model.add(MaxPooling2D(pool_size=(2,2)))  
+    model.add(Flatten())  
+    model.add(Dense(4096,activation='relu'))  
+    model.add(Dropout(0.5))  
+    model.add(Dense(4096,activation='relu'))  
+    model.add(Dropout(0.5))  
+    model.add(Dense(num_classes,activation='softmax'))  
+    model.compile(loss='categorical_crossentropy', optimizer='sgd', metrics=['accuracy'])
+    model.summary()  
+    return model
 
     # You can view a summary of the network using the `summary()` function:
-    model.summary()
-    return model
 
 
 def train(model=None, ite=200):
@@ -135,7 +133,6 @@ def train(model=None, ite=200):
 
     print(labels[0])
     print(images.shape)
-
     # ## Train the Network
     #
     # We train the network by passing the generator,
@@ -156,7 +153,7 @@ def train(model=None, ite=200):
         if os.path.exists(DEFAULT_WEIGHT_PATH) is False:
             os.makedirs(DEFAULT_WEIGHT_PATH)
         model.save(DEFAULT_WEIGHT_PATH+"/my_model.h5")
-        print('saved model')
+        print("Iteration{0}: ,saved model".format(iteration))
 
 
 def evaluate(model):
@@ -176,24 +173,55 @@ def evaluate(model):
     g = p.keras_generator(batch_size=batch_size)
     images, labels = next(g)
     # x_eval, y_eval, _, _ = generate_data(EVAL_SIZE)
+    # a = images[0]
+    # img = Image.fromarray(images[0]*255, 'RGB')
+    # img.show()
+    print(np.amax(images))
     loss, acc = model.evaluate(images, labels,
                                batch_size=evaluate_size)
     print("The loss is: {0:>10.5}\nThe accuracy is: {1:>10.5%}".format(loss, acc))
     
 
 def predict(model):
-    datagen = ImageDataGenerator(rescale=1. / 255)
     model = load_model(model)
-    generator = datagen.flow_from_directory(
-        'test',
-        target_size=(64, 64),
-        batch_size=32,
-        class_mode=None,  # only data, no labels
-        shuffle=False)
-    probabilities = model.predict_generator(generator, 20)
-    #np.save(open(' probabilities.npy', 'w'),  probabilities)
-    print("The label is: %s"%(probabilities))
-    print(probabilities[0])
+    img_name_list = os.listdir(DEFAULT_TEST_PATH)
+    result = []
+    name = []
+    for i, img_name in enumerate(img_name_list):
+        im = Image.open(DEFAULT_TEST_PATH + "/" + img_name)
+        print("predict " + img_name)
+        w, h = im.size
+        width = input_image_shape[0]
+        height = input_image_shape[1]
+
+        # Zero samples list
+        pred_img_list = []
+        # Generate random samples from every test image.
+        for _ in range(pred_num_per_img):
+            x = random.randint(0, w - width - 1)
+            y = random.randint(0, h - height - 1)
+            img = im.crop((x, y, x+width, y+width))
+            # img.show()
+            imarray = np.array(img)
+            pred_img_list.append(imarray)
+        # Test samples and get the most frequent result as the best
+        pred_img_list = np.asarray(pred_img_list)
+        pred_img_list = pred_img_list.astype('float32')
+        pred_img_list = pred_img_list/255
+        pred = model.predict(x=pred_img_list, batch_size=pred_num_per_img, verbose=1)
+        pred = np.argmax(np.bincount(np.argmax(pred, axis=1)))
+
+        # Append result and image name
+        result.append(label_list[pred])
+        name.append(img_name)
+
+    # Save csv file as a result.
+    with open('result.csv', 'w', newline='') as csvfile:
+        spamwriter = csv.writer(csvfile)
+        spamwriter.writerow(['fname', 'camera'])
+        for i in range(len(result)):
+            spamwriter.writerow([name[i], result[i]])
+    print("Finished")
 
 
 # ## Summary
@@ -228,9 +256,9 @@ if __name__ == '__main__':
     elif args.command == "predict":
         assert args.model is not None, "Please load a model..."
         predict(args.model)
-    elif args.command == "debug":
-        model = model_create()
-        model.save(DEFAULT_WEIGHT_PATH+"/my_model.h5")
+    # elif args.command == "debug":
+    #     model = model_create()
+    #     model.save(DEFAULT_WEIGHT_PATH+"/my_model.h5")
 
 	#     assert args.model is not None, "Please load a model..."
     #     test(args.model)
