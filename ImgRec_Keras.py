@@ -59,28 +59,11 @@ def model_create():
     model.add(Flatten())  # this converts our 3D feature maps to 1D feature vectors
     model.add(Dense(64, activation='relu'))
     model.add(Dropout(0.5))
-    model.add(Dense(num_classes, activation='sigmoid'))
+    model.add(Dense(num_classes, activation='softmax'))
 
-    model.compile(loss='binary_crossentropy',
-                  optimizer='rmsprop',
+    model.compile(loss='categorical_crossentropy',
+                  optimizer='sgd',
                   metrics=['accuracy'])
-
-    # model.add(Conv2D(32, kernel_size=(3, 3),
-    #                  activation='relu',
-    #                  input_shape=input_shape))
-    # model.add(Conv2D(64, (3, 3), activation='relu'))
-    # model.add(MaxPooling2D(pool_size=(2, 2)))
-    # model.add(Dropout(0.25))
-    # model.add(Flatten())
-    # model.add(Dense(128, activation='relu'))
-    # model.add(Dropout(0.5))
-    # model.add(Dense(num_classes, activation='softmax'))
-
-    # Once a network has been defined, you can compile it so that the model is ready to be trained with data:
-
-    # model.compile(loss=keras.losses.categorical_crossentropy,
-    #               optimizer=keras.optimizers.Adadelta(),
-    #               metrics=['accuracy'])
 
     # You can view a summary of the network using the `summary()` function:
     model.summary()
@@ -141,7 +124,6 @@ def train(model=None, ite=200):
 
     print(labels[0])
     print(images.shape)
-
     # ## Train the Network
     #
     # We train the network by passing the generator,
@@ -162,7 +144,7 @@ def train(model=None, ite=200):
         if os.path.exists(DEFAULT_WEIGHT_PATH) is False:
             os.makedirs(DEFAULT_WEIGHT_PATH)
         model.save(DEFAULT_WEIGHT_PATH+"/my_model.h5")
-        print('saved model')
+        print("Iteration{0}: ,saved model".format(iteration))
 
 
 def evaluate(model):
@@ -182,6 +164,10 @@ def evaluate(model):
     g = p.keras_generator(batch_size=batch_size)
     images, labels = next(g)
     # x_eval, y_eval, _, _ = generate_data(EVAL_SIZE)
+    # a = images[0]
+    # img = Image.fromarray(images[0]*255, 'RGB')
+    # img.show()
+    print(np.amax(images))
     loss, acc = model.evaluate(images, labels,
                                batch_size=evaluate_size)
     print("The loss is: {0:>10.5}\nThe accuracy is: {1:>10.5%}".format(loss, acc))
@@ -210,7 +196,9 @@ def predict(model):
             imarray = np.array(img)
             pred_img_list.append(imarray)
         # Test samples and get the most frequent result as the best
-        pred_img_list = np.array(pred_img_list)
+        pred_img_list = np.asarray(pred_img_list)
+        pred_img_list = pred_img_list.astype('float32')
+        pred_img_list = pred_img_list/255
         pred = model.predict(x=pred_img_list, batch_size=pred_num_per_img, verbose=1)
         pred = np.argmax(np.bincount(np.argmax(pred, axis=1)))
 
@@ -225,7 +213,7 @@ def predict(model):
         for i in range(len(result)):
             spamwriter.writerow([name[i], result[i]])
     print("Finished")
-    
+
 
 # ## Summary
 # 
