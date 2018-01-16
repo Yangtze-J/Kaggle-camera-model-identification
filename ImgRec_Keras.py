@@ -190,7 +190,7 @@ def train(model=None, fine_tune=None, ite=200):
 
         if os.path.exists(DEFAULT_WEIGHT_PATH) is False:
             os.makedirs(DEFAULT_WEIGHT_PATH)
-        model.save(DEFAULT_WEIGHT_PATH+"/my_model.h5")
+        model.save(DEFAULT_WEIGHT_PATH+"/my_new_model.h5")
         print("Iteration{0}: ,saved model".format(iteration))
 
 
