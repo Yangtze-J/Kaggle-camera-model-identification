@@ -11,9 +11,7 @@
 
 # In[1]:
 
-
 import Augmentor
-import keras
 import os
 import csv
 import random
@@ -31,18 +29,70 @@ ROOT_DIR = os.getcwd()
 DEFAULT_WEIGHT_PATH = os.path.join(ROOT_DIR, "model")
 DEFAULT_TRAIN_PATH = os.path.join(ROOT_DIR, "train")
 DEFAULT_TEST_PATH = os.path.join(ROOT_DIR, "test")
-input_image_shape = (64, 64, 3)
+input_image_shape = (128, 128, 3)
 batch_size = 32
 evaluate_size = 100
 pred_num_per_img = 10
+num_classes = 10
 
 label_list = sorted(os.listdir(DEFAULT_TRAIN_PATH), reverse=False)
+
+
+def fine_tune_model():
+
+    from keras.applications.xception import Xception
+    from keras.optimizers import SGD
+    from keras.models import Model
+    from keras.layers import Dense, GlobalAveragePooling2D
+
+    # create the base pre-trained model
+    # base_model = InceptionV3(weights='imagenet', include_top=False)
+    base_model = Xception(weights='imagenet', include_top=False, input_shape=input_image_shape)
+    # add a global spatial average pooling layer
+    x = base_model.output
+    x = GlobalAveragePooling2D()(x)
+    # let's add a fully-connected layer
+    x = Dense(1024, activation='relu')(x)
+    # and a logistic layer -- let's say we have num_classes classes
+    predictions = Dense(num_classes, activation='softmax')(x)
+
+    # this is the model we will train
+    model = Model(inputs=base_model.input, outputs=predictions)
+
+    # first: train only the top layers (which were randomly initialized)
+    # i.e. freeze all convolutional Xception layers
+    for layer in base_model.layer:
+        layer.trainable = False
+
+    # compile the model (should be done *after* setting layers to non-trainable)
+    # model.compile(optimizer='rmsprop', loss='categorical_crossentropy')
+    model.compile(optimizer=SGD(lr=0.0001, momentum=0.9), loss='categorical_crossentropy', metrics=['accuracy'])
+    model.summary()
+
+    return model
+    # train the model on the new data for a few epochs
+    # model.fit_generator(...)
+
+    # at this point, the top layers are well trained and we can start fine-tuning
+    # convolutional layers from inception V3. We will freeze the bottom N layers
+    # and train the remaining top layers.
+
+    # let's visualize layer names and layer indices to see how many layers
+    # for i, layer in enumerate(model.layers):
+    #     print(i, layer.name)
+
+    # # we chose to train the top 2 inception blocks, i.e. we will freeze
+    # # the first 249 layers and unfreeze the rest:
+    # for layer in model.layers[:249]:
+    #     layer.trainable = False
+    # for layer in model.layers[249:]:
+    #     layer.trainable = True
+
 
 
 def model_create():
     # ## Define a Convolutional Neural Network
 
-    num_classes = 10
     dr=0.6
     seed = 7  
     np.random.seed(seed)  
@@ -58,20 +108,22 @@ def model_create():
     model.add(Dense(100,activation='relu'))
     model.add(Dropout(dr))
     model.add(Dense(num_classes,activation='softmax'))  
-    model.compile(optimizer='sgd',loss='categorical_crossentropy',metrics=['accuracy'])  
+    model.compile(optimizer='sgd',loss='categorical_crossentropy', metrics=['accuracy'])
     model.summary()    
     return model
 
     # You can view a summary of the network using the `summary()` function:
 
 
-def train(model=None, ite=200):
+def train(model=None, fine_tune=None, ite=200):
 
     if model is None:
-        model = model_create()
+        if fine_tune is None:
+            model = model_create()
+        else:
+            model = fine_tune_model()
     else:
         model = load_model(model)
-
     p = Augmentor.Pipeline(DEFAULT_TRAIN_PATH)
     # ## Add Operations to the Pipeline
     #
@@ -227,27 +279,23 @@ if __name__ == '__main__':
     parser.add_argument('--model', required=False,
                         metavar="/path/to/my_model.h5",
                         help="Path to my_model.h5 file")
+    parser.add_argument('--ft', required=False,
+                        metavar="/path/to/my_model.h5",
+                        help="Path to my_model.h5 file")
+    # parser.add_argument('--finetune', required=False,
+    #                     metavar="/path/to/my_model.h5",
+    #                     help="Path to my_model.h5 file")
 
     args = parser.parse_args()
     print("Command: ", args.command)
     print("Model: ", args.model)
+    print("fine tune: ", args.ft)
     if args.command == "train":
-        if args.model is None:
-            train()
-        else:
-            train(args.model)
+        train(model=args.model, fine_tune=args.ft)
     elif args.command == "evaluate":
         assert args.model is not None, "Please load a model..."
         evaluate(args.model)
     elif args.command == "predict":
         assert args.model is not None, "Please load a model..."
         predict(args.model)
-    # elif args.command == "debug":
-    #     model = model_create()
-    #     model.save(DEFAULT_WEIGHT_PATH+"/my_model.h5")
 
-	#     assert args.model is not None, "Please load a model..."
-    #     test(args.model)
-    # elif args.command == "plot":
-    #     assert args.model is not None, "Please load a model..."
-    #     plot(args.model)model.save(DEFAULT_WEIGHT_PATH+"/my_model.h5")
