@@ -29,6 +29,8 @@ ROOT_DIR = os.getcwd()
 DEFAULT_WEIGHT_PATH = os.path.join(ROOT_DIR, "model")
 DEFAULT_TRAIN_PATH = os.path.join(ROOT_DIR, "train")
 DEFAULT_TEST_PATH = os.path.join(ROOT_DIR, "test")
+DEFAULT_LOG_PATH = os.path.join(ROOT_DIR, "log")
+
 input_image_shape = (128, 128, 3)
 batch_size = 32
 evaluate_size = 100
@@ -41,7 +43,7 @@ label_list = sorted(os.listdir(DEFAULT_TRAIN_PATH), reverse=False)
 def fine_tune_model():
 
     from keras.applications.xception import Xception
-    from keras.optimizers import SGD
+    # from keras.optimizers import SGD
     from keras.models import Model
     from keras.layers import Dense, GlobalAveragePooling2D
 
@@ -61,12 +63,12 @@ def fine_tune_model():
 
     # first: train only the top layers (which were randomly initialized)
     # i.e. freeze all convolutional Xception layers
-    for layer in base_model.layer:
+    for layer in base_model.layers:
         layer.trainable = False
 
     # compile the model (should be done *after* setting layers to non-trainable)
-    # model.compile(optimizer='rmsprop', loss='categorical_crossentropy')
-    model.compile(optimizer=SGD(lr=0.0001, momentum=0.9), loss='categorical_crossentropy', metrics=['accuracy'])
+    model.compile(optimizer='rmsprop', loss='categorical_crossentropy',  metrics=['accuracy'])
+    # model.compile(optimizer=SGD(lr=0.0001, momentum=0.9), loss='categorical_crossentropy', metrics=['accuracy'])
     model.summary()
 
     return model
@@ -124,6 +126,7 @@ def train(model=None, fine_tune=None, ite=200):
             model = fine_tune_model()
     else:
         model = load_model(model)
+
     p = Augmentor.Pipeline(DEFAULT_TRAIN_PATH)
     # ## Add Operations to the Pipeline
     #
@@ -187,11 +190,33 @@ def train(model=None, fine_tune=None, ite=200):
         print('-' * 50)
         print('Iteration', iteration)
         h = model.fit_generator(g, steps_per_epoch=len(p.augmentor_images) / batch_size, epochs=5, verbose=1)
-
+        acc = h.history['acc']
+        loss = h.history['loss']
         if os.path.exists(DEFAULT_WEIGHT_PATH) is False:
             os.makedirs(DEFAULT_WEIGHT_PATH)
         model.save(DEFAULT_WEIGHT_PATH+"/my_new_model.h5")
         print("Iteration{0}: ,saved model".format(iteration))
+        log_results('bin_', acc, loss)
+
+
+def log_results(filename, acc_log, loss_log):
+    # Save the results to a file so we can graph it later.
+    with open(DEFAULT_LOG_PATH + '/' + filename + 'acc.csv', 'a', newline='') as data_dump:
+        wr = csv.writer(data_dump)
+        for acc_item in acc_log:
+            wr.writerow([acc_item])
+
+    with open(DEFAULT_LOG_PATH + '/' + filename + 'loss.csv', 'a', newline='') as lf:
+        wr = csv.writer(lf)
+        for loss_item in loss_log:
+            wr.writerow([loss_item])
+
+    # with open('result.csv', 'w', newline='') as csvfile:
+    #     spamwriter = csv.writer(csvfile)
+    #     spamwriter.writerow(['fname', 'camera'])
+    #     for i in range(len(result)):
+    #         spamwriter.writerow([name[i], result[i]])
+    # print("Finished")
 
 
 def evaluate(model):
