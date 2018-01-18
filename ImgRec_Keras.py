@@ -57,14 +57,15 @@ def fine_tune_model():
     x = Dense(1024, activation='relu')(x)
     # and a logistic layer -- let's say we have num_classes classes
     predictions = Dense(num_classes, activation='softmax')(x)
-
-    # this is the model we will train
+    #
+    # # this is the model we will train
     model = Model(inputs=base_model.input, outputs=predictions)
 
     # first: train only the top layers (which were randomly initialized)
     # i.e. freeze all convolutional Xception layers
     for layer in base_model.layers:
         layer.trainable = False
+    base_model.summary()
 
     # compile the model (should be done *after* setting layers to non-trainable)
     model.compile(optimizer='rmsprop', loss='categorical_crossentropy',  metrics=['accuracy'])
@@ -89,7 +90,6 @@ def fine_tune_model():
     #     layer.trainable = False
     # for layer in model.layers[249:]:
     #     layer.trainable = True
-
 
 
 def model_create():
@@ -117,10 +117,10 @@ def model_create():
     # You can view a summary of the network using the `summary()` function:
 
 
-def train(model=None, fine_tune=None, ite=200):
+def train(model=None, personal_model=None, ite=200):
 
     if model is None:
-        if fine_tune is None:
+        if personal_model is True:
             model = model_create()
         else:
             model = fine_tune_model()
@@ -200,6 +200,8 @@ def train(model=None, fine_tune=None, ite=200):
 
 
 def log_results(filename, acc_log, loss_log):
+    if os.path.exists(DEFAULT_LOG_PATH) is False:
+        os.makedirs(DEFAULT_LOG_PATH)
     # Save the results to a file so we can graph it later.
     with open(DEFAULT_LOG_PATH + '/' + filename + 'acc.csv', 'a', newline='') as data_dump:
         wr = csv.writer(data_dump)
@@ -210,13 +212,6 @@ def log_results(filename, acc_log, loss_log):
         wr = csv.writer(lf)
         for loss_item in loss_log:
             wr.writerow([loss_item])
-
-    # with open('result.csv', 'w', newline='') as csvfile:
-    #     spamwriter = csv.writer(csvfile)
-    #     spamwriter.writerow(['fname', 'camera'])
-    #     for i in range(len(result)):
-    #         spamwriter.writerow([name[i], result[i]])
-    # print("Finished")
 
 
 def evaluate(model):
@@ -304,9 +299,9 @@ if __name__ == '__main__':
     parser.add_argument('--model', required=False,
                         metavar="/path/to/my_model.h5",
                         help="Path to my_model.h5 file")
-    parser.add_argument('--ft', required=False,
-                        metavar="/path/to/my_model.h5",
-                        help="Path to my_model.h5 file")
+    parser.add_argument('--pm', required=False,
+                        metavar="Use personal model?",
+                        help="\'True\' or \'False\'")
     # parser.add_argument('--finetune', required=False,
     #                     metavar="/path/to/my_model.h5",
     #                     help="Path to my_model.h5 file")
@@ -316,7 +311,7 @@ if __name__ == '__main__':
     print("Model: ", args.model)
     print("fine tune: ", args.ft)
     if args.command == "train":
-        train(model=args.model, fine_tune=args.ft)
+        train(model=args.model, personal_model=args.pm)
     elif args.command == "evaluate":
         assert args.model is not None, "Please load a model..."
         evaluate(args.model)
