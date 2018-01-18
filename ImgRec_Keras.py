@@ -309,7 +309,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     print("Command: ", args.command)
     print("Model: ", args.model)
-    print("fine tune: ", args.ft)
+    print("Personal Model: ", args.pm)
     if args.command == "train":
         train(model=args.model, personal_model=args.pm)
     elif args.command == "evaluate":
