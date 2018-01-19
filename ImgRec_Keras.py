@@ -16,10 +16,12 @@ import os
 import csv
 import random
 from PIL import Image
+from keras import backend as K
 from keras.models import Sequential
 from keras.models import load_model
 from keras.layers import Dense, Dropout, Flatten
 from keras.layers import Conv2D, MaxPooling2D
+from keras import optimizers
 from keras.preprocessing.image import ImageDataGenerator
 import numpy as np
 
@@ -32,7 +34,7 @@ DEFAULT_TEST_PATH = os.path.join(ROOT_DIR, "test")
 DEFAULT_LOG_PATH = os.path.join(ROOT_DIR, "log")
 
 input_image_shape = (128, 128, 3)
-batch_size = 32
+batch_size = 64
 evaluate_size = 100
 pred_num_per_img = 10
 num_classes = 10
@@ -95,7 +97,7 @@ def fine_tune_model():
 def model_create():
     # ## Define a Convolutional Neural Network
 
-    dr=0.6
+    dr = 0.6
     seed = 7  
     np.random.seed(seed)  
     
@@ -117,7 +119,7 @@ def model_create():
     # You can view a summary of the network using the `summary()` function:
 
 
-def train(model=None, personal_model=None, ite=200):
+def train(model=None, personal_model=None, ite=200, changelr=None):
 
     if model is None:
         if personal_model is True:
@@ -126,6 +128,9 @@ def train(model=None, personal_model=None, ite=200):
             model = fine_tune_model()
     else:
         model = load_model(model)
+
+    # Finish load model
+    model.summary()
 
     p = Augmentor.Pipeline(DEFAULT_TRAIN_PATH)
     # ## Add Operations to the Pipeline
@@ -136,9 +141,9 @@ def train(model=None, personal_model=None, ite=200):
     width = input_image_shape[0]
     height = input_image_shape[1]
 
-    p.rotate90(probability=0.5)
-    p.flip_top_bottom(probability=0.5)
-    p.rotate(probability=0.3, max_left_rotation=5, max_right_rotation=5)
+    # p.rotate90(probability=0.5)
+    # p.flip_top_bottom(probability=0.5)
+    # p.rotate(probability=0.3, max_left_rotation=5, max_right_rotation=5)
     p.crop_by_size(probability=1, width=width, height=height, centre=False)
 
     # You can view the status of pipeline using the `status()` function,
@@ -185,11 +190,15 @@ def train(model=None, personal_model=None, ite=200):
     #
     # Training the network over 5 epochs, we get the following output:
 
+    len(p.augmentor_images)
+
     for iteration in range(1, ite):
         print()
         print('-' * 50)
         print('Iteration', iteration)
-        h = model.fit_generator(g, steps_per_epoch=len(p.augmentor_images) / batch_size, epochs=5, verbose=1)
+        # steps_per_epoch=len(p.augmentor_images) / batch_size
+        h = model.fit_generator(g, steps_per_epoch=10, epochs=1, verbose=1)
+        print('Model learning rate :', K.get_value(model.optimizer.lr))
         acc = h.history['acc']
         loss = h.history['loss']
         if os.path.exists(DEFAULT_WEIGHT_PATH) is False:
@@ -199,7 +208,13 @@ def train(model=None, personal_model=None, ite=200):
         log_results('bin_', acc, loss)
 
 
+def debug(model):
+    model = load_model(model)
+    print(K.get_value(model.optimizer.lr))
+
+
 def log_results(filename, acc_log, loss_log):
+    print("Saving log")
     if os.path.exists(DEFAULT_LOG_PATH) is False:
         os.makedirs(DEFAULT_LOG_PATH)
     # Save the results to a file so we can graph it later.
@@ -302,6 +317,9 @@ if __name__ == '__main__':
     parser.add_argument('--pm', required=False,
                         metavar="Use personal model?",
                         help="\'True\' or \'False\'")
+    parser.add_argument('--changelr', required=False,
+                        metavar="Use personal model?",
+                        help="\'True\' or \'False\'")
     # parser.add_argument('--finetune', required=False,
     #                     metavar="/path/to/my_model.h5",
     #                     help="Path to my_model.h5 file")
@@ -309,13 +327,16 @@ if __name__ == '__main__':
     args = parser.parse_args()
     print("Command: ", args.command)
     print("Model: ", args.model)
-    print("Personal Model: ", args.pm)
+    print("Personal Model:", args.pm)
+    print("Change Learning Rate:", args.changelr)
     if args.command == "train":
-        train(model=args.model, personal_model=args.pm)
+        train(model=args.model, personal_model=args.pm, changelr=args.changelr)
     elif args.command == "evaluate":
         assert args.model is not None, "Please load a model..."
         evaluate(args.model)
     elif args.command == "predict":
         assert args.model is not None, "Please load a model..."
         predict(args.model)
+    elif args.command == "debug":
+        debug(args.model)
 
