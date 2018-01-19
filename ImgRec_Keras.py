@@ -128,7 +128,8 @@ def train(model=None, personal_model=None, ite=200, changelr=None):
             model = fine_tune_model()
     else:
         model = load_model(model)
-
+    RMS = optimizers.RMSprop(lr=0.0001)
+    model.compile(optimizer=RMS,loss='categorical_crossentropy', metrics=['accuracy'])
     # Finish load model
     model.summary()
 
