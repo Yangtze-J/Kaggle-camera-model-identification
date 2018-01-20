@@ -16,6 +16,7 @@ import os
 import csv
 import random
 from PIL import Image
+import keras
 from keras import backend as K
 from keras.models import Sequential
 from keras.models import load_model
@@ -235,15 +236,17 @@ def train(model=None, personal_model=None, ite=200, changelr=None):
     # images, labels = next(g)
 
     # len(p.augmentor_images)
-
-    for iteration in range(1, ite):
+    iteration = 0
+    while True:
+        iteration += 1
         print()
         print('-' * 50)
         print('Iteration', iteration)
         # steps_per_epoch=len(p.augmentor_images) / train_batch_size
         h = model.fit_generator(generator=pg, steps_per_epoch=len(p.augmentor_images)/train_batch_size,
                                 epochs=1, verbose=1,
-                                callbacks=[keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, verbose=1, mode='auto')]
+                                callbacks=[keras.callbacks.EarlyStopping(monitor='val_loss', patience=4,
+                                                                         verbose=1, mode='auto')],
                                 validation_data=vg, validation_steps=len(v.augmentor_images)/val_batch_size)
         print('Model learning rate :', K.get_value(model.optimizer.lr))
         acc = h.history['acc']
