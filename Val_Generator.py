@@ -1,8 +1,11 @@
 import os
 import random
+from PIL import Image
 ROOT_DIR = os.getcwd()
 DEFAULT_TRAIN_PATH = os.path.join(ROOT_DIR, "train")
 DEFAULT_VAL_PATH = os.path.join(ROOT_DIR, "val")
+DEFAULT_NJPG_PATH = os.path.join(ROOT_DIR, "NJPG")
+
 
 label_list = sorted(os.listdir(DEFAULT_TRAIN_PATH), reverse=False)
 print("Class list:", label_list)
@@ -38,6 +41,32 @@ def val_back_train():
             print("Moved:", cls + '/' + choice)
 
 
+def clean_train_for_jpg():
+    # Make non jpg dir
+    if os.path.exists(DEFAULT_NJPG_PATH) is False:
+        os.makedirs(DEFAULT_NJPG_PATH)
+    # Make sub dir
+    for cls_name in label_list:
+        if os.path.exists(DEFAULT_NJPG_PATH + '/' + cls_name) is False:
+            os.makedirs(DEFAULT_NJPG_PATH + '/' + cls_name)
+            print("Make dir: ", cls_name)
+
+    for i, cls in enumerate(label_list):
+        image_name_list = sorted(os.listdir(DEFAULT_TRAIN_PATH+'/'+cls), reverse=False)
+        print("Working on: {0}, {1} images in val class.".format(cls, len(image_name_list)))
+        for choice in image_name_list:
+            try:
+                with Image.open(DEFAULT_TRAIN_PATH+'/'+cls+'/'+choice) as opened_image:
+                    if opened_image.format is not 'JPEG':
+                        # Delete not JPEG image
+                        os.rename(DEFAULT_TRAIN_PATH+'/'+cls+'/'+choice,
+                                  DEFAULT_NJPG_PATH + '/' + cls + '/' + choice)
+                        print("Moved:", cls + '/' + choice)
+                        image_name_list.remove(choice)
+            except:
+                print("{0} is not image".format(choice))
+
+
 if __name__ == '__main__':
     import argparse
     # Parse command line arguments
@@ -52,5 +81,48 @@ if __name__ == '__main__':
         val_generator()
     elif args.command == "back":
         val_back_train()
+    elif args.command == "clean":
+        clean_train_for_jpg()
     else:
         print("Command error, 'generate' or 'back'")
+
+
+#
+# import os
+# import re
+# import wget
+#
+# ROOT_DIR = os.getcwd()
+# DEFAULT_WEIGHT_PATH = os.path.join(ROOT_DIR, "model")
+#
+# with open(ROOT_DIR+'/good_jpgs') as f:
+#     content = f.readlines()
+# # you may also want to remove whitespace characters like `\n` at the end of each line
+# content = [x.strip() for x in content]
+#
+# for i, name in enumerate(content):
+#     # Find directory and image name
+#     try:
+#         directory = re.search('/(.+?)/', name).group(1)
+#         start = name.find(directory+'/') + len(directory) + 1
+#         image_name = name[start:len(name)]
+#     except AttributeError:
+#         continue
+#     # Open directory's urls_final
+#     with open(ROOT_DIR + '/' + directory + '/urls_final' ) as sf:
+#         urls = sf.readlines()
+#     # you may also want to remove whitespace characters like `\n` at the end of each line
+#     urls = [x.strip() for x in urls]
+#
+#     try:
+#         # Check if image exist.
+#         if os.path.isfile(ROOT_DIR + '/' + directory + '/' + image_name) is False:
+#             matching_url = [s for s in urls if image_name in s]
+#             wget.download(matching_url[0], ROOT_DIR + '/' + directory + '/' + image_name)
+#             print("\nFinished downloading image : ", directory, '/', image_name)
+#         else:
+#             print("Image", directory, '/', image_name, "has been downloaded")
+#     except AttributeError:
+#         print("Can not download image", directory, '/', image_name)
+#
+# print("Finish all good jpgs downloading")

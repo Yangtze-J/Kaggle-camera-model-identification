@@ -32,31 +32,47 @@ DEFAULT_WEIGHT_PATH = os.path.join(ROOT_DIR, "model")
 DEFAULT_TRAIN_PATH = os.path.join(ROOT_DIR, "train")
 DEFAULT_TEST_PATH = os.path.join(ROOT_DIR, "test")
 DEFAULT_LOG_PATH = os.path.join(ROOT_DIR, "log")
+DEFAULT_VAL_PATH = os.path.join(ROOT_DIR, "val")
 
-input_image_shape = (128, 128, 3)
-batch_size = 64
+input_image_shape = (256, 256, 3)
+
+train_batch_size = 64
+val_batch_size = 64
+
 evaluate_size = 100
-pred_num_per_img = 10
+pred_num_per_img = 100
+
 num_classes = 10
 
 label_list = sorted(os.listdir(DEFAULT_TRAIN_PATH), reverse=False)
+
+# 	Class index: 0 Class label: HTC-1-M7
+# 	Class index: 1 Class label: LG-Nexus-5x
+# 	Class index: 2 Class label: Motorola-Droid-Maxx
+# 	Class index: 3 Class label: Motorola-Nexus-6
+# 	Class index: 4 Class label: Motorola-X
+# 	Class index: 5 Class label: Samsung-Galaxy-Note3
+# 	Class index: 6 Class label: Samsung-Galaxy-S4
+# 	Class index: 7 Class label: Sony-NEX-7
+# 	Class index: 8 Class label: iPhone-4s
+# 	Class index: 9 Class label: iPhone-6
 
 
 def fine_tune_model():
 
     from keras.applications.xception import Xception
-    # from keras.optimizers import SGD
     from keras.models import Model
     from keras.layers import Dense, GlobalAveragePooling2D
 
     # create the base pre-trained model
     # base_model = InceptionV3(weights='imagenet', include_top=False)
     base_model = Xception(weights='imagenet', include_top=False, input_shape=input_image_shape)
+    base_model.summary()
     # add a global spatial average pooling layer
     x = base_model.output
     x = GlobalAveragePooling2D()(x)
     # let's add a fully-connected layer
-    x = Dense(1024, activation='relu')(x)
+    x = Dense(2048, activation='relu')(x)
     # and a logistic layer -- let's say we have num_classes classes
     predictions = Dense(num_classes, activation='softmax')(x)
     #
@@ -67,10 +83,11 @@ def fine_tune_model():
     # i.e. freeze all convolutional Xception layers
     for layer in base_model.layers:
         layer.trainable = False
-    base_model.summary()
 
+    RMS = optimizers.RMSprop(lr=0.001)
+    model.compile(optimizer=RMS, loss='categorical_crossentropy', metrics=['accuracy'])
     # compile the model (should be done *after* setting layers to non-trainable)
-    model.compile(optimizer='rmsprop', loss='categorical_crossentropy',  metrics=['accuracy'])
+    # model.compile(optimizer='rmsprop', loss='categorical_crossentropy',  metrics=['accuracy'])
     # model.compile(optimizer=SGD(lr=0.0001, momentum=0.9), loss='categorical_crossentropy', metrics=['accuracy'])
     model.summary()
 
@@ -92,6 +109,40 @@ def fine_tune_model():
     #     layer.trainable = False
     # for layer in model.layers[249:]:
     #     layer.trainable = True
+
+
+def fine_tune_inceptionresnet_v2():
+
+    from keras.applications.inception_resnet_v2 import InceptionResNetV2
+
+    from keras.models import Model
+    from keras.layers import Dense, GlobalAveragePooling2D
+    # create the base pre-trained model
+    # base_model = InceptionV3(weights='imagenet', include_top=False)
+    base_model = InceptionResNetV2(weights='imagenet', include_top=False, input_shape=input_image_shape)
+
+    # add a global spatial average pooling layer
+    x = base_model.output
+    x = GlobalAveragePooling2D()(x)
+    # let's add a fully-connected layer
+    x = Dense(2048, activation='relu')(x)
+    # and a logistic layer -- let's say we have num_classes classes
+    predictions = Dense(num_classes, activation='softmax')(x)
+    #
+    # # this is the model we will train
+    model = Model(inputs=base_model.input, outputs=predictions)
+    # first: train only the top layers (which were randomly initialized)
+    # i.e. freeze all convolutional Xception layers
+    for layer in base_model.layers:
+        layer.trainable = False
+    RMS = optimizers.RMSprop(lr=0.001, decay=1e-7)
+    model.compile(optimizer=RMS, loss='categorical_crossentropy', metrics=['accuracy'])
+    # compile the model (should be done *after* setting layers to non-trainable)
+    # model.compile(optimizer='rmsprop', loss='categorical_crossentropy',  metrics=['accuracy'])
+    # model.compile(optimizer=SGD(lr=0.0001, momentum=0.9), loss='categorical_crossentropy', metrics=['accuracy'])
+    model.summary()
+
+    return model
 
 
 def model_create():
@@ -125,26 +176,24 @@ def train(model=None, personal_model=None, ite=200, changelr=None):
         if personal_model is True:
             model = model_create()
         else:
-            model = fine_tune_model()
+            model = fine_tune_inceptionresnet_v2()
     else:
         model = load_model(model)
-    RMS = optimizers.RMSprop(lr=0.0001)
-    model.compile(optimizer=RMS,loss='categorical_crossentropy', metrics=['accuracy'])
+
     # Finish load model
     model.summary()
 
     p = Augmentor.Pipeline(DEFAULT_TRAIN_PATH)
-    # ## Add Operations to the Pipeline
-    #
-    # Now that a pipeline object `p` has been created,
-    # we can add operations to the pipeline.
-    # Below we add several simple  operations:
+    # clean not jpg image
+    for augmentor_image in p.augmentor_images:
+        with Image.open(augmentor_image.image_path) as opened_image:
+            if opened_image.format is not 'JPEG':
+                p.augmentor_images.remove(augmentor_image)
+
     width = input_image_shape[0]
     height = input_image_shape[1]
 
-    # p.rotate90(probability=0.5)
-    # p.flip_top_bottom(probability=0.5)
-    # p.rotate(probability=0.3, max_left_rotation=5, max_right_rotation=5)
+    p.flip_top_bottom(probability=0.1)
     p.crop_by_size(probability=1, width=width, height=height, centre=False)
 
     # You can view the status of pipeline using the `status()` function,
@@ -158,60 +207,72 @@ def train(model=None, personal_model=None, ite=200, changelr=None):
     # A generator will create images indefinitely,
     # and we can use this generator as input into the model created above.
     # The generator is created with a user-defined batch size,
-    # which we define here in a variable named `batch_size`.
+    # which we define here in a variable named `train_batch_size`.
     # This is used later to define number of steps per epoch,
     # so it is best to keep it stored as a variable.
 
-    g = p.keras_generator(batch_size=batch_size)
+    pg = p.keras_generator(batch_size=train_batch_size)
 
     # The generator can now be used to created augmented data.
     # In Python, generators are invoked using the `next()` function -
     # the Augmentor generators will return images indefinitely,
     # and so `next()` can be called as often as required.
     #
+
+    v = Augmentor.Pipeline(DEFAULT_VAL_PATH)
+    # clean not jpg image
+    for augmentor_image in v.augmentor_images:
+        with Image.open(augmentor_image.image_path) as opened_image:
+            if opened_image.format is not 'JPEG':
+                v.augmentor_images.remove(augmentor_image)
+
+    v.crop_by_size(probability=1, width=width, height=height, centre=False)
+    # v.status()
+
+    vg = v.keras_generator(batch_size=val_batch_size)
+
     # You can view the output of generator manually:
+    # images, labels = next(g)
 
-    images, labels = next(g)
-
-    # Images, and their labels, are returned in batches of the size defined above by `batch_size`.
-    # The `image_batch` variable is a tuple, containing the augmentented images and their corresponding labels.
-    #m
-    # To see the label of the first image returned by the generator you can use the array's index:
-
-    print(labels[0])
-    print(images.shape)
-    # ## Train the Network
-    #
-    # We train the network by passing the generator,
-    # `g`, to the model's fit function.
-    # In Keras, if a generator is used we used the `fit_generator()` function
-    # as opposed to the standard `fit()` function.
-    #Also, the steps per epoch should roughly equal the total number of images
-    # in your dataset divided by the `batch_size`.
-    #
-    # Training the network over 5 epochs, we get the following output:
-
-    len(p.augmentor_images)
+    # len(p.augmentor_images)
 
     for iteration in range(1, ite):
         print()
         print('-' * 50)
         print('Iteration', iteration)
-        # steps_per_epoch=len(p.augmentor_images) / batch_size
-        h = model.fit_generator(g, steps_per_epoch=10, epochs=1, verbose=1)
+        # steps_per_epoch=len(p.augmentor_images) / train_batch_size
+        h = model.fit_generator(generator=pg, steps_per_epoch=len(p.augmentor_images)/train_batch_size,
+                                epochs=1, verbose=1,
+                                validation_data=vg, validation_steps=len(v.augmentor_images)/val_batch_size)
         print('Model learning rate :', K.get_value(model.optimizer.lr))
         acc = h.history['acc']
         loss = h.history['loss']
         if os.path.exists(DEFAULT_WEIGHT_PATH) is False:
             os.makedirs(DEFAULT_WEIGHT_PATH)
-        model.save(DEFAULT_WEIGHT_PATH+"/my_new_model.h5")
+        model.save(DEFAULT_WEIGHT_PATH+"/InceptionResNetV2_model.h5")
         print("Iteration{0}: ,saved model".format(iteration))
         log_results('bin_', acc, loss)
 
 
-def debug(model):
-    model = load_model(model)
-    print(K.get_value(model.optimizer.lr))
+def debug():
+
+    width = input_image_shape[0]
+    height = input_image_shape[1]
+
+    v = Augmentor.Pipeline(DEFAULT_TRAIN_PATH)
+    v.crop_by_size(probability=1, width=width, height=height, centre=False)
+    v.status()
+
+    for augmentor_image in v.augmentor_images:
+        with Image.open(augmentor_image.image_path) as opened_image:
+            if opened_image.format is not 'JPEG':
+                v.augmentor_images.remove(augmentor_image)
+    v.status()
+
+    vg = v.keras_generator(batch_size=val_batch_size)
+    images, labels = next(vg)
+
+    print(images.shape, labels)
 
 
 def log_results(filename, acc_log, loss_log):
@@ -237,14 +298,12 @@ def evaluate(model):
     width = input_image_shape[0]
     height = input_image_shape[1]
 
-    p.rotate90(probability=0.5)
     p.flip_top_bottom(probability=0.5)
-    p.rotate(probability=0.3, max_left_rotation=5, max_right_rotation=5)
     p.crop_by_size(probability=1, width=width, height=height, centre=False)
 
     p.status()
 
-    g = p.keras_generator(batch_size=batch_size)
+    g = p.keras_generator(batch_size=train_batch_size)
     images, labels = next(g)
     # x_eval, y_eval, _, _ = generate_data(EVAL_SIZE)
     # a = images[0]
@@ -252,7 +311,7 @@ def evaluate(model):
     # img.show()
     print(np.amax(images))
     loss, acc = model.evaluate(images, labels,
-                               batch_size=evaluate_size)
+                               train_batch_size=evaluate_size)
     print("The loss is: {0:>10.5}\nThe accuracy is: {1:>10.5%}".format(loss, acc))
     
 
@@ -339,5 +398,4 @@ if __name__ == '__main__':
         assert args.model is not None, "Please load a model..."
         predict(args.model)
     elif args.command == "debug":
-        debug(args.model)
-
+        debug()
