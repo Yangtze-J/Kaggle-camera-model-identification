@@ -243,6 +243,7 @@ def train(model=None, personal_model=None, ite=200, changelr=None):
         # steps_per_epoch=len(p.augmentor_images) / train_batch_size
         h = model.fit_generator(generator=pg, steps_per_epoch=len(p.augmentor_images)/train_batch_size,
                                 epochs=1, verbose=1,
+                                callbacks=[keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, verbose=1, mode='auto')]
                                 validation_data=vg, validation_steps=len(v.augmentor_images)/val_batch_size)
         print('Model learning rate :', K.get_value(model.optimizer.lr))
         acc = h.history['acc']
