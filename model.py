@@ -6,7 +6,7 @@ from keras.models import Sequential
 from config import *
 
 
-def fine_tune_model():
+def Xception():
     from keras.applications.xception import Xception
     from keras.models import Model
     from keras.layers import Dense, GlobalAveragePooling2D
@@ -47,7 +47,7 @@ def fine_tune_model():
     #     layer.trainable = True
 
 
-def fine_tune_inceptionresnet_v2():
+def IceptionResnet_V2():
     from keras.applications.inception_resnet_v2 import InceptionResNetV2
 
     from keras.models import Model
@@ -69,7 +69,73 @@ def fine_tune_inceptionresnet_v2():
     # first: train only the top layers (which were randomly initialized)
     # i.e. freeze all convolutional Xception layers
     for layer in base_model.layers:
-        layer.trainable = False
+        layer.trainable = True
+    RMS = optimizers.RMSprop(lr=0.001, decay=1e-7)
+    model.compile(optimizer=RMS, loss='categorical_crossentropy', metrics=['accuracy'])
+    # compile the model (should be done *after* setting layers to non-trainable)
+    # model.compile(optimizer='rmsprop', loss='categorical_crossentropy',  metrics=['accuracy'])
+    # model.compile(optimizer=SGD(lr=0.0001, momentum=0.9), loss='categorical_crossentropy', metrics=['accuracy'])
+    model.summary()
+
+    return model
+
+
+def InceptionV3():
+    from keras.applications.inception_v3 import InceptionV3
+
+    from keras.models import Model
+    from keras.layers import Dense, GlobalAveragePooling2D
+    # create the base pre-trained model
+    # base_model = InceptionV3(weights='imagenet', include_top=False)
+    base_model = InceptionV3(weights='imagenet', include_top=False, input_shape=input_image_shape)
+
+    # add a global spatial average pooling layer
+    x = base_model.output
+    x = GlobalAveragePooling2D()(x)
+    # let's add a fully-connected layer
+    x = Dense(2048, activation='relu')(x)
+    # and a logistic layer -- let's say we have num_classes classes
+    predictions = Dense(num_classes, activation='softmax')(x)
+    #
+    # # this is the model we will train
+    model = Model(inputs=base_model.input, outputs=predictions)
+    # first: train only the top layers (which were randomly initialized)
+    # i.e. freeze all convolutional Xception layers
+    for layer in base_model.layers:
+        layer.trainable = True
+    RMS = optimizers.RMSprop(lr=0.001, decay=1e-7)
+    model.compile(optimizer=RMS, loss='categorical_crossentropy', metrics=['accuracy'])
+    # compile the model (should be done *after* setting layers to non-trainable)
+    # model.compile(optimizer='rmsprop', loss='categorical_crossentropy',  metrics=['accuracy'])
+    # model.compile(optimizer=SGD(lr=0.0001, momentum=0.9), loss='categorical_crossentropy', metrics=['accuracy'])
+    model.summary()
+
+    return model
+
+
+def ResNet50():
+    from keras.applications.resnet50 import ResNet50
+
+    from keras.models import Model
+    from keras.layers import Dense, GlobalAveragePooling2D
+    # create the base pre-trained model
+    # base_model = InceptionV3(weights='imagenet', include_top=False)
+    base_model = ResNet50(weights='imagenet', include_top=False, input_shape=input_image_shape)
+
+    # add a global spatial average pooling layer
+    x = base_model.output
+    x = GlobalAveragePooling2D()(x)
+    # let's add a fully-connected layer
+    x = Dense(2048, activation='relu')(x)
+    # and a logistic layer -- let's say we have num_classes classes
+    predictions = Dense(num_classes, activation='softmax')(x)
+    #
+    # # this is the model we will train
+    model = Model(inputs=base_model.input, outputs=predictions)
+    # first: train only the top layers (which were randomly initialized)
+    # i.e. freeze all convolutional Xception layers
+    for layer in base_model.layers:
+        layer.trainable = True
     RMS = optimizers.RMSprop(lr=0.001, decay=1e-7)
     model.compile(optimizer=RMS, loss='categorical_crossentropy', metrics=['accuracy'])
     # compile the model (should be done *after* setting layers to non-trainable)

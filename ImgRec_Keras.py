@@ -1,5 +1,5 @@
 from config import *
-from model import fine_tune_inceptionresnet_v2, model_create
+from model import IceptionResnet_V2, model_create, InceptionV3, Xception, ResNet50
 
 
 # 	Class index: 0 Class label: HTC-1-M7
@@ -20,7 +20,7 @@ def train(model_path=None, personal_model=None):
         if personal_model is True:
             model = model_create()
         else:
-            model = fine_tune_inceptionresnet_v2()
+            model = ResNet50()
     else:
         model = load_model(model_path)
 
