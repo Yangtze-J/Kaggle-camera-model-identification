@@ -79,26 +79,29 @@ def train(model_path=None, personal_model=None):
     # images, labels = next(g)
 
     # len(p.augmentor_images)
-    iteration = 0
-    while True:
-        iteration += 1
-        print()
-        print('-' * 50)
-        print('Iteration', iteration)
-        # steps_per_epoch=len(p.augmentor_images) / train_batch_size
-        h = model.fit_generator(generator=pg, steps_per_epoch=len(p.augmentor_images)/train_batch_size,
-                                epochs=1, verbose=1,
-                                callbacks=[keras.callbacks.EarlyStopping(monitor='val_loss', patience=4,
-                                                                         verbose=1, mode='auto')],
-                                validation_data=vg, validation_steps=len(v.augmentor_images)/val_batch_size)
-        print('Model learning rate :', K.get_value(model.optimizer.lr))
-        acc = h.history['acc']
-        loss = h.history['loss']
-        if os.path.exists(DEFAULT_WEIGHT_PATH) is False:
-            os.makedirs(DEFAULT_WEIGHT_PATH)
-        model.save(DEFAULT_WEIGHT_PATH+"/new_model.h5")
-        print("Iteration{0}: ,saved model".format(iteration))
-        log_results('bin_', acc, loss)
+    # iteration = 0
+    # while True:
+    #     iteration += 1
+    print()
+    print('-' * 50)
+    # print('Iteration', iteration)
+    # steps_per_epoch=len(p.augmentor_images) / train_batch_size
+    h = model.fit_generator(generator=pg, steps_per_epoch=len(p.augmentor_images)/train_batch_size,
+                            epochs=400, verbose=1,
+                            callbacks=[keras.callbacks.EarlyStopping(monitor='val_loss', patience=4,
+                                                                     verbose=1, mode='auto'),
+                                       keras.callbacks.ModelCheckpoint(DEFAULT_WEIGHT_PATH+"/Inception_{epoch:02d}-{val_loss:.2f}.h5",
+                                                                       monitor='val_loss', verbose=1,
+                                                                       save_best_only=True, save_weights_only=False,
+                                                                       mode='auto', period=1)],
+                            validation_data=vg, validation_steps=len(v.augmentor_images)/val_batch_size)
+    print('Model learning rate :', K.get_value(model.optimizer.lr))
+    acc = h.history['acc']
+    loss = h.history['loss']
+    if os.path.exists(DEFAULT_WEIGHT_PATH) is False:
+        os.makedirs(DEFAULT_WEIGHT_PATH)
+    # model.save(DEFAULT_WEIGHT_PATH+"/new_model.h5")
+    log_results('bin_', acc, loss)
 
 
 def debug(model_path):
