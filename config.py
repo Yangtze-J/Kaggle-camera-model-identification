@@ -18,7 +18,7 @@ DEFAULT_TEST_PATH = os.path.join(ROOT_DIR, "test")
 DEFAULT_LOG_PATH = os.path.join(ROOT_DIR, "log")
 DEFAULT_VAL_PATH = os.path.join(ROOT_DIR, "val")
 
-input_image_shape = (200, 200, 3)
+input_image_shape = (256, 256, 3)
 
 train_batch_size = 64
 val_batch_size = 64
