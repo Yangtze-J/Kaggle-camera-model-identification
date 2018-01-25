@@ -20,7 +20,7 @@ def train(model_path=None, personal_model=None):
         if personal_model is True:
             model = model_create()
         else:
-            model = ResNet50()
+            model = Xception()
     else:
         model = load_model(model_path)
 
@@ -90,7 +90,7 @@ def train(model_path=None, personal_model=None):
                             epochs=400, verbose=1,
                             callbacks=[keras.callbacks.EarlyStopping(monitor='val_loss', patience=4,
                                                                      verbose=1, mode='auto'),
-                                       keras.callbacks.ModelCheckpoint(DEFAULT_WEIGHT_PATH+"/Inception_{epoch:02d}-{val_loss:.2f}.h5",
+                                       keras.callbacks.ModelCheckpoint(DEFAULT_WEIGHT_PATH+"/Xception_{epoch:02d}-{val_loss:.2f}-{val_acc:.2f}.h5",
                                                                        monitor='val_loss', verbose=1,
                                                                        save_best_only=True, save_weights_only=False,
                                                                        mode='auto', period=1)],
