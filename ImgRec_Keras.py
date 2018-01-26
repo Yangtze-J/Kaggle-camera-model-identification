@@ -40,6 +40,7 @@ args = parser.parse_args()
 
 CROP_SIZE = args.crop_size
 input_image_shape = (CROP_SIZE, CROP_SIZE, 3)
+MANIPULATIONS = ['jpg70', 'jpg90', 'gamma0.8', 'gamma1.2', 'bicubic0.5', 'bicubic0.8', 'bicubic1.5', 'bicubic2.0']
 
 
 def train(model_path=None, personal_model=None):
@@ -72,7 +73,7 @@ def train(model_path=None, personal_model=None):
         last_epoch = 0
     else:
         model = load_model(model_path, compile=False)
-        match = re.search(r'(\D*)-epoch(\d+)-(\d+)-(\d+).h5', args.model)
+        match = re.search(r'(\D*)-epoch:(\d+)-(\d+.\d+)-(\d+.\d+).h5', args.model)
         model_name = match.group(1)
         last_epoch = int(match.group(2))
         print("Model name:{0}, last epoch:{1}".format(model_name, last_epoch))
@@ -125,7 +126,7 @@ def train(model_path=None, personal_model=None):
                             callbacks=[keras.callbacks.EarlyStopping(monitor='val_loss', patience=4,
                                                                      verbose=1, mode='auto'),
                                        keras.callbacks.ModelCheckpoint(DEFAULT_WEIGHT_PATH+"/"+model_name+
-                                                                       "-epoch"+"{epoch:02d}-{val_loss:.2f}-{val_acc:.2f}.h5",
+                                                                       "-epoch:"+"{epoch:02d}-{val_loss:.2f}-{val_acc:.2f}.h5",
                                                                        monitor='val_loss', verbose=1,
                                                                        save_best_only=True, save_weights_only=False,
                                                                        mode='auto', period=1)],
