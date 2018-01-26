@@ -23,7 +23,8 @@ def train(model_path=None, personal_model=None):
             model = Xception()
     else:
         model = load_model(model_path)
-
+    adm = keras.optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
+    model.compile(optimizer=adm, loss='categorical_crossentropy', metrics=['accuracy']) 
     # Finish load model
     model.summary()
 
