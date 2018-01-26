@@ -3,9 +3,7 @@ from keras.applications import *
 from keras.models import Model
 from keras.layers import Dense, GlobalAveragePooling2D
 from model import model_create
-import cv2
-from io import BytesIO
-import jpeg4py as jpeg
+from manipulation import Opera
 
 
 # 	Class index: 0 Class label: HTC-1-M7
@@ -73,7 +71,7 @@ def train(model_path=None, personal_model=None):
         last_epoch = 0
     else:
         model = load_model(model_path, compile=False)
-        match = re.search(r'(\D*)-epoch:(\d+)-(\d+.\d+)-(\d+.\d+).h5', args.model)
+        match = re.search(r'model/(\D*)-epoch:(\d+)-(\d+.\d+)-(\d+.\d+).h5', args.model)
         model_name = match.group(1)
         last_epoch = int(match.group(2))
         print("Model name:{0}, last epoch:{1}".format(model_name, last_epoch))
@@ -141,7 +139,7 @@ def train(model_path=None, personal_model=None):
     log_results('bin_', acc, loss)
 
 
-def debug(model_path):
+def all_trainable(model_path):
     model = load_model(model_path)
     for i, layer in enumerate(model.layers):
         print(i, layer.name, layer.trainable)
@@ -149,6 +147,32 @@ def debug(model_path):
     for i, layer in enumerate(model.layers):
         print(i, layer.name, layer.trainable)
     model.save(model_path)
+
+
+def debug():
+    p = Augmentor.Pipeline(DEFAULT_VAL_PATH)
+    # clean not jpg image
+    for augmentor_image in p.augmentor_images:
+        with Image.open(augmentor_image.image_path) as opened_image:
+            if opened_image.format is not 'JPEG':
+                p.augmentor_images.remove(augmentor_image)
+
+    width = input_image_shape[0]
+    height = input_image_shape[1]
+
+    manipu = Opera(probability=1, manipulation="random")
+    manipu = Opera(probability=1, manipulation=MANIPULATIONS[0])
+
+    # p.flip_top_bottom(probability=0.1)
+    p.crop_by_size(probability=1, width=width, height=height, centre=False)
+    p.add_operation(manipu)
+
+    p.status()
+
+    pg = p.keras_generator(batch_size=train_batch_size)
+    images, labels = next(pg)
+
+    len(p.augmentor_images)
 
 
 def log_results(filename, acc_log, loss_log):
@@ -160,37 +184,11 @@ def log_results(filename, acc_log, loss_log):
         wr = csv.writer(data_dump)
         for acc_item in acc_log:
             wr.writerow([acc_item])
-
+    import skimage.exposure
     with open(DEFAULT_LOG_PATH + '/' + filename + 'loss.csv', 'a', newline='') as lf:
         wr = csv.writer(lf)
         for loss_item in loss_log:
             wr.writerow([loss_item])
-
-
-def random_manipulation(img, manipulation=None):
-
-    if manipulation == None:
-        manipulation = random.choice(MANIPULATIONS)
-
-    if manipulation.startswith('jpg'):
-        quality = int(manipulation[3:])
-        out = BytesIO()
-        im = Image.fromarray(img)
-        im.save(out, format='jpeg', quality=quality)
-        im_decoded = jpeg.JPEG(np.frombuffer(out.getvalue(), dtype=np.uint8)).decode()
-        del out
-        del im
-    elif manipulation.startswith('gamma'):
-        gamma = float(manipulation[5:])
-        # alternatively use skimage.exposure.adjust_gamma
-        # img = skimage.exposure.adjust_gamma(img, gamma)
-        im_decoded = np.uint8(cv2.pow(img / 255., gamma)*255.)
-    elif manipulation.startswith('bicubic'):
-        scale = float(manipulation[7:])
-        im_decoded = cv2.resize(img,(0,0), fx=scale, fy=scale, interpolation = cv2.INTER_CUBIC)
-    else:
-        assert False
-    return im_decoded
 
 
 def evaluate(model_path):
@@ -278,4 +276,4 @@ if __name__ == '__main__':
         assert args.model is not None, "Please load a model..."
         predict(args.model)
     elif args.command == "debug":
-        debug(args.model)
+        debug()
