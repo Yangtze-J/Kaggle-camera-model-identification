@@ -37,7 +37,7 @@ def Xception():
     # model.compile(optimizer='rmsprop', loss='categorical_crossentropy',  metrics=['accuracy'])
     # model.compile(optimizer=SGD(lr=0.0001, momentum=0.9), loss='categorical_crossentropy', metrics=['accuracy'])
     model.summary()
-
+    print("\nXception Model Created")
     return model
     # # we chose to train the top 2 inception blocks, i.e. we will freeze
     # # the first 249 layers and unfreeze the rest:
