@@ -20,7 +20,7 @@ def train(model_path=None, personal_model=None):
         if personal_model is True:
             model = model_create()
         else:
-            model = ResNet50()
+            model = IceptionResnet_V2()
     else:
         model = load_model(model_path)
 
@@ -37,7 +37,7 @@ def train(model_path=None, personal_model=None):
     width = input_image_shape[0]
     height = input_image_shape[1]
 
-    p.flip_top_bottom(probability=0.1)
+    # p.flip_top_bottom(probability=0.1)
     p.crop_by_size(probability=1, width=width, height=height, centre=False)
 
     # You can view the status of pipeline using the `status()` function,
