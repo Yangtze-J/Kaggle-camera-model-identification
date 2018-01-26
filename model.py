@@ -12,7 +12,7 @@ def model_create():
     dr = 0.6
     seed = 7
     np.random.seed(seed)
-    global input_image_shape
+    input_image_shape = (128, 128, 3)
     model = Sequential()
     model.add(Conv2D(32, (5, 5), strides=(1, 1), input_shape=input_image_shape, padding='valid', activation='relu',
                      kernel_initializer='uniform'))

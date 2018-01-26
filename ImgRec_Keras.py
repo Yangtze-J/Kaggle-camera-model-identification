@@ -50,10 +50,9 @@ def train(model_path=None, personal_model=None):
         else:
             classifier = globals()[args.classifier]
 
-            base_model = classifier(
-                include_top=False,
-                weights='imagenet',
-                input_shape=input_image_shape)
+            base_model = classifier(include_top=False,
+                                    weights='imagenet',
+                                    input_shape=input_image_shape)
             x = base_model.output
             x = GlobalAveragePooling2D()(x)
             # let's add a fully-connected layer
@@ -75,8 +74,8 @@ def train(model_path=None, personal_model=None):
         model_name = match.group(1)
         last_epoch = int(match.group(2))
         print("Model name:{0}, last epoch:{1}".format(model_name, last_epoch))
-    if args.gpus >= 2:
-        model = multi_gpu_model(model, gpus=args.gpus)
+    # if args.gpus >= 2:
+    #     model = multi_gpu_model(model, gpus=args.gpus)
 
     adm = keras.optimizers.Adam(lr=0.001)
     model.compile(optimizer=adm, loss='categorical_crossentropy', metrics=['accuracy'])
@@ -119,6 +118,7 @@ def train(model_path=None, personal_model=None):
 
     print()
     print('-' * 50)
+
     h = model.fit_generator(generator=pg, steps_per_epoch=len(p.augmentor_images)/train_batch_size,
                             epochs=args.max_epoch, verbose=1,
                             callbacks=[keras.callbacks.EarlyStopping(monitor='val_loss', patience=4,
@@ -161,17 +161,21 @@ def debug():
     height = input_image_shape[1]
 
     manipu = Opera(probability=1, manipulation="random")
-    manipu = Opera(probability=1, manipulation=MANIPULATIONS[0])
+    # manipu = Opera(probability=1, manipulation=MANIPULATIONS[0])
 
     # p.flip_top_bottom(probability=0.1)
-    p.crop_by_size(probability=1, width=width, height=height, centre=False)
     p.add_operation(manipu)
+    # because of bicubic operation, crop must be at least
+    # p.crop_by_size(probability=1, width=width, height=height, centre=False)
 
     p.status()
 
     pg = p.keras_generator(batch_size=train_batch_size)
-    images, labels = next(pg)
-
+    images, labels, origin = next(pg)
+    img = Image.fromarray(images[0]*255, 'RGB')
+    img.show()
+    Ori = Image.fromarray(origin[0]*255, 'RGB')
+    Ori.show()
     len(p.augmentor_images)
 
 

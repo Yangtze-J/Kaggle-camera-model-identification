@@ -75,7 +75,4 @@ class Opera(Operation):
             del im_decoded
         else:
             assert False
-        # End of code to perform custom image operation.
-
-        # Return the image so that it can further processed in the pipeline:
         return image
