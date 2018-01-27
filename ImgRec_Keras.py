@@ -1,7 +1,7 @@
 from config import *
 from keras.applications import *
 from keras.models import Model
-from keras.layers import Dense, GlobalAveragePooling2D
+from keras.layers import Dense, Dropout, GlobalAveragePooling2D, Input, Reshape
 from model import model_create
 from manipulation import Opera
 
@@ -30,9 +30,11 @@ parser.add_argument('-cm', '--classifier', type=str, default='Xception', help='B
 parser.add_argument('-pm', required=False,
                     metavar="Use personal model?",
                     help="\'True\' or \'False\'")
+parser.add_argument('-p', '--pooling', type=str, default='avg', help='Type of pooling to use')
 parser.add_argument('-g', '--gpus', type=int, default=1, help='Number of GPUs to use')
-parser.add_argument('-cs', '--crop-size', type=int, default=128, help='Crop size')
+parser.add_argument('-cs', '--crop-size', type=int, default=256, help='Crop size')
 parser.add_argument('-me', '--max-epoch', type=int, default=200, help='Epoch to run')
+parser.add_argument('-dpo', '--dropout', type=float, default=0.2, help='Dropout rate for FC layers')
 
 args = parser.parse_args()
 
@@ -49,14 +51,18 @@ def train(model_path=None, personal_model=None):
             model_name = "personal_model"
         else:
             classifier = globals()[args.classifier]
-
             base_model = classifier(include_top=False,
                                     weights='imagenet',
-                                    input_shape=input_image_shape)
+                                    input_shape=input_image_shape,
+                                    pooling=args.pooling if args.pooling != 'none' else None)
             x = base_model.output
-            x = GlobalAveragePooling2D()(x)
+            # x = GlobalAveragePooling2D()(x)
             # let's add a fully-connected layer
-            x = Dense(2048, activation='relu')(x)
+            x = Dense(512, activation='relu', name='fc1')(x)
+            x = Dropout(args.dropout, name='dropout_fc1')(x)
+            x = Dense(128, activation='relu', name='fc2')(x)
+            x = Dropout(args.dropout, name='dropout_fc2')(x)
+            # x = Dense(2048, activation='relu')(x)
             # and a logistic layer -- let's say we have num_classes classes
             predictions = Dense(num_classes, activation='softmax')(x)
             # # this is the model we will train
@@ -65,12 +71,13 @@ def train(model_path=None, personal_model=None):
             # i.e. freeze all convolutional Xception layers
             for layer in base_model.layers:
                 layer.trainable = True
+            model.summary()
             print(args.classifier + " Model Created")
             model_name = args.classifier
         last_epoch = 0
     else:
         model = load_model(model_path, compile=False)
-        match = re.search(r'model/(\D*)-epoch:(\d+)-(\d+.\d+)-(\d+.\d+).h5', args.model)
+        match = re.search(r'model/(.*)-epoch:(\d+)-(\d+.\d+)-(\d+.\d+).h5', args.model)
         model_name = match.group(1)
         last_epoch = int(match.group(2))
         print("Model name:{0}, last epoch:{1}".format(model_name, last_epoch))
@@ -197,7 +204,13 @@ def debug1():
             im.show()
 
 
-def debug(model_path):
+def debug():
+
+    keras.applications.densenet.DenseNet201(include_top=True, weights='imagenet', input_tensor=None, input_shape=None,
+                                            pooling=None, classes=1000)
+
+
+def add_one_dense(model_path):
     model = load_model(model_path)
     model.summary()
 
