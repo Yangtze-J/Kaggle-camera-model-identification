@@ -53,10 +53,10 @@ def train(model_path=None, personal_model=None):
             classifier = globals()[args.classifier]
             base_model = classifier(include_top=False,
                                     weights='imagenet',
-                                    input_shape=input_image_shape,
-                                    pooling=args.pooling if args.pooling != 'none' else None)
+                                    input_shape=input_image_shape)
+                                    # pooling=args.pooling if args.pooling != 'none' else None)
             x = base_model.output
-            # x = GlobalAveragePooling2D()(x)
+            x = GlobalAveragePooling2D()(x)
             # let's add a fully-connected layer
             x = Dense(512, activation='relu', name='fc1')(x)
             x = Dropout(args.dropout, name='dropout_fc1')(x)
@@ -138,7 +138,7 @@ def train(model_path=None, personal_model=None):
                                                                        save_best_only=True, save_weights_only=False,
                                                                        mode='auto', period=1)],
                             validation_data=vg, validation_steps=len(v.augmentor_images)/val_batch_size,
-                            initial_epoch=last_epoch,)
+                            initial_epoch=last_epoch)
     print('Model learning rate :', K.get_value(model.optimizer.lr))
     acc = h.history['acc']
     loss = h.history['loss']
