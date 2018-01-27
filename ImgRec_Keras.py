@@ -1,7 +1,7 @@
 from config import *
 from keras.applications import *
 from keras.models import Model
-from keras.layers import Dense, Dropout, GlobalAveragePooling2D, Input, Reshape
+from keras.layers import Dense, Dropout, GlobalAveragePooling2D, Input, Reshape, Flatten
 from model import model_create
 from manipulation import Opera
 
@@ -32,7 +32,7 @@ parser.add_argument('-pm', required=False,
                     help="\'True\' or \'False\'")
 parser.add_argument('-p', '--pooling', type=str, default='avg', help='Type of pooling to use')
 parser.add_argument('-g', '--gpus', type=int, default=1, help='Number of GPUs to use')
-parser.add_argument('-cs', '--crop-size', type=int, default=256, help='Crop size')
+parser.add_argument('-cs', '--crop-size', type=int, default=221, help='Crop size')
 parser.add_argument('-me', '--max-epoch', type=int, default=200, help='Epoch to run')
 parser.add_argument('-dpo', '--dropout', type=float, default=0.2, help='Dropout rate for FC layers')
 
@@ -56,7 +56,9 @@ def train(model_path=None, personal_model=None):
                                     input_shape=input_image_shape)
                                     # pooling=args.pooling if args.pooling != 'none' else None)
             x = base_model.output
-            x = GlobalAveragePooling2D()(x)
+            # x = GlobalAveragePooling2D()(x)
+            # x = Reshape((-1,))(x)
+            x = Flatten()(x)
             # let's add a fully-connected layer
             x = Dense(512, activation='relu', name='fc1')(x)
             x = Dropout(args.dropout, name='dropout_fc1')(x)
@@ -81,8 +83,8 @@ def train(model_path=None, personal_model=None):
         model_name = match.group(1)
         last_epoch = int(match.group(2))
         print("Model name:{0}, last epoch:{1}".format(model_name, last_epoch))
-    # if args.gpus >= 2:
-    #     model = multi_gpu_model(model, gpus=args.gpus)
+    if args.gpus >= 2:
+        model = multi_gpu_model(model, gpus=args.gpus)
 
     # opt = keras.optimizers.Adam(lr=0.001)
     opt = keras.optimizers.Nadam(lr=0.002)
