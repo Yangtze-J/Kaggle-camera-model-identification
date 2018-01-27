@@ -123,7 +123,7 @@ def train(model_path=None, personal_model=None):
 
     h = model.fit_generator(generator=pg, steps_per_epoch=len(p.augmentor_images)/train_batch_size,
                             epochs=args.max_epoch, verbose=1,
-                            callbacks=[keras.callbacks.EarlyStopping(monitor='val_loss', patience=4,
+                            callbacks=[keras.callbacks.EarlyStopping(monitor='val_loss', patience=8,
                                                                      verbose=1, mode='auto'),
                                        keras.callbacks.ModelCheckpoint(DEFAULT_WEIGHT_PATH+"/"+model_name+
                                                                        "-epoch:"+"{epoch:02d}-{val_loss:.2f}-{val_acc:.2f}.h5",
