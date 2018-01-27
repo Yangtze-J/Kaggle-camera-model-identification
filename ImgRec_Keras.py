@@ -135,7 +135,7 @@ def train(model_path=None, personal_model=None):
     reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor=monitor, factor=0.5, patience=5, min_lr=1e-9, epsilon = 0.00001, verbose=1, mode='max')
     save_model = keras.callbacks.ModelCheckpoint(DEFAULT_WEIGHT_PATH+"/"+model_name+
                                                  "-epoch:"+"{epoch:02d}-{val_loss:.2f}-{val_acc:.2f}.h5",
-                                                 monitor='val_loss', verbose=1,
+                                                 monitor=monitor, verbose=1,
                                                  save_best_only=True, save_weights_only=False,
                                                  mode='max', period=1)
 
