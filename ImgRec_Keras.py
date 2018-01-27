@@ -130,15 +130,18 @@ def train(model_path=None, personal_model=None):
     print()
     print('-' * 50)
     # steps_per_epoch = len(p.augmentor_images) / train_batch_size
+    monitor = 'val_acc'
+    early_stop = keras.callbacks.EarlyStopping(monitor=monitor, patience=8, verbose=1, mode='max')
+    reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor=monitor, factor=0.5, patience=5, min_lr=1e-9, epsilon = 0.00001, verbose=1, mode='max')
+    save_model = keras.callbacks.ModelCheckpoint(DEFAULT_WEIGHT_PATH+"/"+model_name+
+                                                 "-epoch:"+"{epoch:02d}-{val_loss:.2f}-{val_acc:.2f}.h5",
+                                                 monitor='val_loss', verbose=1,
+                                                 save_best_only=True, save_weights_only=False,
+                                                 mode='max', period=1)
+
     h = model.fit_generator(generator=pg, steps_per_epoch=50,
                             epochs=args.max_epoch, verbose=1,
-                            callbacks=[keras.callbacks.EarlyStopping(monitor='val_loss', patience=8,
-                                                                     verbose=1, mode='auto'),
-                                       keras.callbacks.ModelCheckpoint(DEFAULT_WEIGHT_PATH+"/"+model_name+
-                                                                       "-epoch:"+"{epoch:02d}-{val_loss:.2f}-{val_acc:.2f}.h5",
-                                                                       monitor='val_loss', verbose=1,
-                                                                       save_best_only=True, save_weights_only=False,
-                                                                       mode='auto', period=1)],
+                            callbacks=[reduce_lr, save_model],
                             validation_data=vg, validation_steps=len(v.augmentor_images)/val_batch_size,
                             initial_epoch=last_epoch)
     print('Model learning rate :', K.get_value(model.optimizer.lr))
