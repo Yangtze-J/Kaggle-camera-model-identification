@@ -56,9 +56,9 @@ def train(model_path=None, personal_model=None):
                                     input_shape=input_image_shape)
                                     # pooling=args.pooling if args.pooling != 'none' else None)
             x = base_model.output
-            x = GlobalAveragePooling2D()(x)
+            # x = GlobalAveragePooling2D()(x)
             # x = Reshape((-1,))(x)
-            # x = Flatten()(x)
+            x = Flatten()(x)
             # let's add a fully-connected layer
             x = Dense(512, activation='relu', name='fc1')(x)
             x = Dropout(args.dropout, name='dropout_fc1')(x)
