@@ -77,8 +77,10 @@ def train(model_path=None, personal_model=None):
     # if args.gpus >= 2:
     #     model = multi_gpu_model(model, gpus=args.gpus)
 
-    adm = keras.optimizers.Adam(lr=0.001)
-    model.compile(optimizer=adm, loss='categorical_crossentropy', metrics=['accuracy'])
+    # opt = keras.optimizers.Adam(lr=0.001)
+    opt = keras.optimizers.Nadam(lr=0.002)
+    # opt = keras.optimizers.RMSprop(lr=0.001)
+    model.compile(optimizer=opt, loss='categorical_crossentropy', metrics=['accuracy'])
     # Finish load model
     model.summary()
 
@@ -149,7 +151,7 @@ def all_trainable(model_path):
     model.save(model_path)
 
 
-def debug():
+def debug2():
     p = Augmentor.Pipeline(DEFAULT_VAL_PATH)
     # clean not jpg image
     for augmentor_image in p.augmentor_images:
@@ -166,17 +168,53 @@ def debug():
     # p.flip_top_bottom(probability=0.1)
     p.add_operation(manipu)
     # because of bicubic operation, crop must be at least
-    # p.crop_by_size(probability=1, width=width, height=height, centre=False)
+    p.crop_by_size(probability=1, width=1024, height=1024, centre=False)
 
     p.status()
 
     pg = p.keras_generator(batch_size=train_batch_size)
     images, labels, origin = next(pg)
-    img = Image.fromarray(images[0]*255, 'RGB')
-    img.show()
-    Ori = Image.fromarray(origin[0]*255, 'RGB')
-    Ori.show()
+    for i in range(len(images)):
+        img = Image.fromarray((images[i]*255).astype('uint8'), 'RGB')
+        img.show()
+        Ori = Image.fromarray((origin[i]*255).astype('uint8'), 'RGB')
+        Ori.show()
     len(p.augmentor_images)
+
+
+def debug1():
+    # direct
+    img_name_list = os.listdir(DEFAULT_VAL_PATH)
+
+    for i, img_name in enumerate(img_name_list):
+        imgs = os.listdir(DEFAULT_VAL_PATH + "/" + img_name)
+        for imgg in imgs:
+            im1 = Image.open(DEFAULT_VAL_PATH + "/" + img_name+"/"+imgg)
+            im = np.asarray(im1).astype('float32')
+            im = im.astype('uint8')
+            im = Image.fromarray(im, 'RGB')
+            im1.show()
+            im.show()
+
+
+def debug(model_path):
+    model = load_model(model_path)
+    model.summary()
+
+    fc1 = model.layers[-2]
+    prediction = model.layers[-1]
+    fc1.name = 'dense_1'
+    prediction.name = 'prediction'
+    # let's add a fully-connected layer
+    x = Dense(1024, activation='relu', name='dense_2')(fc1.output)
+    # and a logistic layer -- let's say we have num_classes classes
+    pred = prediction(x)
+
+    # predictions = Dense(num_classes, activation='softmax')(x)
+    # # this is the model we will train
+    model = Model(inputs=model.input, outputs=pred)
+    model.summary()
+    model.save(model_path)
 
 
 def log_results(filename, acc_log, loss_log):
@@ -280,4 +318,4 @@ if __name__ == '__main__':
         assert args.model is not None, "Please load a model..."
         predict(args.model)
     elif args.command == "debug":
-        debug()
+        debug(args.model)
