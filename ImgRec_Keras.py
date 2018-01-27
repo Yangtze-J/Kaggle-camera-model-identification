@@ -129,8 +129,8 @@ def train(model_path=None, personal_model=None):
 
     print()
     print('-' * 50)
-
-    h = model.fit_generator(generator=pg, steps_per_epoch=len(p.augmentor_images)/train_batch_size,
+    # steps_per_epoch = len(p.augmentor_images) / train_batch_size
+    h = model.fit_generator(generator=pg, steps_per_epoch=50,
                             epochs=args.max_epoch, verbose=1,
                             callbacks=[keras.callbacks.EarlyStopping(monitor='val_loss', patience=8,
                                                                      verbose=1, mode='auto'),
