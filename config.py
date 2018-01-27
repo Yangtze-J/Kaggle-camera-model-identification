@@ -20,8 +20,8 @@ DEFAULT_LOG_PATH = os.path.join(ROOT_DIR, "log")
 DEFAULT_VAL_PATH = os.path.join(ROOT_DIR, "val")
 
 
-train_batch_size = 64
-val_batch_size = 64
+train_batch_size = 10
+val_batch_size = 10
 
 evaluate_size = 100
 pred_num_per_img = 10
