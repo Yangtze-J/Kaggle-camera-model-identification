@@ -33,7 +33,7 @@ parser.add_argument('-pm', required=False,
 parser.add_argument('-p', '--pooling', type=str, default='avg', help='Type of pooling to use')
 parser.add_argument('-g', '--gpus', type=int, default=1, help='Number of GPUs to use')
 parser.add_argument('-cs', '--crop-size', type=int, default=221, help='Crop size')
-parser.add_argument('-me', '--max-epoch', type=int, default=200, help='Epoch to run')
+parser.add_argument('-me', '--max-epoch', type=int, default=500, help='Epoch to run')
 parser.add_argument('-dpo', '--dropout', type=float, default=0.2, help='Dropout rate for FC layers')
 
 args = parser.parse_args()
