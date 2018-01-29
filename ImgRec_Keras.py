@@ -1,10 +1,11 @@
 from config import *
 from keras.applications import *
 from keras.models import Model
-from keras.layers import Dense, Dropout, GlobalAveragePooling2D, Input, Reshape, Flatten
+from keras.layers import Dense, Dropout, GlobalAveragePooling2D, Input, Reshape, Flatten, concatenate
 from model import model_create
 from manipulation import Opera
-
+from Pipeline import *
+from keras.utils import plot_model
 
 # 	Class index: 0 Class label: HTC-1-M7
 # 	Class index: 1 Class label: LG-Nexus-5x
@@ -93,7 +94,9 @@ def train(model_path=None, personal_model=None):
     # # Finish load model
     # model.summary()
 
-    p = Augmentor.Pipeline(DEFAULT_TRAIN_PATH)
+    p = Pipeline(DEFAULT_TRAIN_PATH)
+    manipu = Opera(probability=0.5, manipulation="random")
+
     # clean not jpg image
     for augmentor_image in p.augmentor_images:
         with Image.open(augmentor_image.image_path) as opened_image:
@@ -103,20 +106,19 @@ def train(model_path=None, personal_model=None):
     width = input_image_shape[0]
     height = input_image_shape[1]
 
-    # p.flip_top_bottom(probability=0.1)
+    p.add_operation(manipu)
     p.crop_by_size(probability=1, width=width, height=height, centre=False)
-
     p.status()
-
     pg = p.keras_generator(batch_size=train_batch_size)
 
-    v = Augmentor.Pipeline(DEFAULT_VAL_PATH)
+    v = Pipeline(DEFAULT_VAL_PATH)
     # clean not jpg image
     for augmentor_image in v.augmentor_images:
         with Image.open(augmentor_image.image_path) as opened_image:
             if opened_image.format is not 'JPEG':
                 v.augmentor_images.remove(augmentor_image)
 
+    v.add_operation(manipu)
     v.crop_by_size(probability=1, width=width, height=height, centre=False)
     # v.status()
 
@@ -177,8 +179,37 @@ def change_trainable(model_path):
     model.save(DEFAULT_WEIGHT_PATH+'/Changed_Xception.h5')
 
 
+def add_manipulation(model_path):
+    model = load_model(model_path)
+    # input_image = Input(shape=(CROP_SIZE, CROP_SIZE, 3))
+    manipulated = Input(shape=(1,), name="manipulation")
+
+    for i, layer in enumerate(model.layers):
+        print(i, layer.name, layer.trainable)
+        layer.trainable = False
+
+    x = model.layers[-9]
+    print(x.name)
+    print(model.layers[-8].name)
+    x = Reshape((-1,))(x.output)
+
+    x = concatenate([x, manipulated])
+    x = Dense(1024, activation='relu', name='fc1')(x)
+    drop1 = model.layers[-6](x)
+    fc2 = model.layers[-5](drop1)
+    drop2 = model.layers[-4](fc2)
+    fc3 = model.layers[-3](drop2)
+    drop3 = model.layers[-2](fc3)
+    prediction = model.layers[-1](drop3)
+
+    model = Model(inputs=(model.input, manipulated), outputs=prediction)
+    plot_model(model, to_file='manipulated_model.png')
+    model.summary()
+    model.save(DEFAULT_WEIGHT_PATH+'/XceptionManipu.h5')
+
+
 def debug2():
-    p = Augmentor.Pipeline(DEFAULT_VAL_PATH)
+    p = Pipeline(DEFAULT_VAL_PATH)
     # clean not jpg image
     for augmentor_image in p.augmentor_images:
         with Image.open(augmentor_image.image_path) as opened_image:
@@ -188,7 +219,7 @@ def debug2():
     width = input_image_shape[0]
     height = input_image_shape[1]
 
-    manipu = Opera(probability=1, manipulation="random")
+    manipu = Opera(probability=0.5, manipulation="random")
     # manipu = Opera(probability=1, manipulation=MANIPULATIONS[0])
 
     # p.flip_top_bottom(probability=0.1)
@@ -199,13 +230,16 @@ def debug2():
     p.status()
 
     pg = p.keras_generator(batch_size=train_batch_size)
-    images, labels, origin = next(pg)
-    for i in range(len(images)):
-        img = Image.fromarray((images[i]*255).astype('uint8'), 'RGB')
-        img.show()
-        Ori = Image.fromarray((origin[i]*255).astype('uint8'), 'RGB')
-        Ori.show()
-    len(p.augmentor_images)
+
+    [images, manipulated], labels = next(pg)
+
+    print(manipulated)
+    # for i in range(len(images)):
+    #     img = Image.fromarray((images[i]*255).astype('uint8'), 'RGB')
+    #     img.show()
+    #     Ori = Image.fromarray((origin[i]*255).astype('uint8'), 'RGB')
+    #     Ori.show()
+    # len(p.augmentor_images)
 
 
 def debug1():
@@ -267,7 +301,7 @@ def log_results(filename, acc_log, loss_log):
 
 def evaluate(model_path):
     model = load_model(model_path)
-    p = Augmentor.Pipeline(DEFAULT_TRAIN_PATH)
+    p = Pipeline(DEFAULT_TRAIN_PATH)
 
     width = input_image_shape[0]
     height = input_image_shape[1]
@@ -350,4 +384,4 @@ if __name__ == '__main__':
         assert args.model is not None, "Please load a model..."
         predict(args.model)
     elif args.command == "debug":
-        change_trainable(args.model)
+        add_manipulation(args.model)

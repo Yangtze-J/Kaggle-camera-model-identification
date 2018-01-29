@@ -46,7 +46,7 @@ class Opera(Operation):
         self.manipulation = manipulation
 
     # Your class must implement the perform_operation method:
-    def perform_operation(self, image):
+    def perform_operation(self, image, manipulated):
         # Start of code to perform custom image operation.
         if self.manipulation is "random":
             manipulation = random.choice(MANIPULATIONS)
@@ -75,4 +75,6 @@ class Opera(Operation):
             del im_decoded
         else:
             assert False
-        return image
+
+        manipulated = 1
+        return image, manipulated
