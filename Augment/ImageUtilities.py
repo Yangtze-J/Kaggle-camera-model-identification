@@ -17,6 +17,7 @@ import random
 import warnings
 import numpy as np
 
+
 class AugmentorImage(object):
     """
     Wrapper class containing paths to images, as well as a number of other

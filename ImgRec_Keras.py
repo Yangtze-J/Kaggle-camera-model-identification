@@ -4,7 +4,7 @@ from keras.models import Model
 from keras.layers import Dense, Dropout, GlobalAveragePooling2D, Input, Reshape, Flatten, concatenate
 from model import model_create
 from manipulation import Opera
-from Pipeline import *
+from Augment.Pipeline import *
 from keras.utils import plot_model
 
 # 	Class index: 0 Class label: HTC-1-M7
@@ -95,7 +95,7 @@ def train(model_path=None, personal_model=None):
     # model.summary()
 
     p = Pipeline(DEFAULT_TRAIN_PATH)
-    manipu = Opera(probability=0.5, manipulation="random")
+    manipu = Opera(probability=0.3, manipulation="random")
 
     # clean not jpg image
     for augmentor_image in p.augmentor_images:
@@ -384,4 +384,5 @@ if __name__ == '__main__':
         assert args.model is not None, "Please load a model..."
         predict(args.model)
     elif args.command == "debug":
-        add_manipulation(args.model)
+        # add_manipulation(args.model)
+        debug2()

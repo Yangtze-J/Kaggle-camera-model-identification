@@ -684,7 +684,7 @@ class Crop(Operation):
         self.height = height
         self.centre = centre
 
-    def perform_operation(self, image):
+    def perform_operation(self, image, manipulated):
         """
         Crop an area from an image, either from a random location or centred,
         using the dimensions supplied during instantiation.
@@ -705,7 +705,7 @@ class Crop(Operation):
         else:
             left_shift = random.randint(0, int((w - self.width)))
             down_shift = random.randint(0, int((h - self.height)))
-            return image.crop((left_shift, down_shift, self.width + left_shift, self.height + down_shift))
+            return image.crop((left_shift, down_shift, self.width + left_shift, self.height + down_shift)), manipulated
 
         ################################################################################################################
         #if self.centre:
