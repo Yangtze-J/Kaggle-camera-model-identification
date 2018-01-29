@@ -80,10 +80,10 @@ def average_dataset():
     for cls in label_list:
         max_num.append(len(os.listdir(DEFAULT_TRAIN_PATH+'/'+cls)))
     max_num = min(max_num)
-
+    print("Max Image Number in per class is:", max_num)
     for i, cls in enumerate(label_list):
         image_name_list = sorted(os.listdir(DEFAULT_TRAIN_PATH+'/'+cls), reverse=False)
-        print("Working on: {0}, {1} images in class.".format(cls, len(image_name_list)))
+        print("Removing on: {0} images in class:{1}.".format(len(image_name_list)-max_num, cls))
         for _ in range(len(image_name_list)-max_num):
             try:
                 choice = random.choice(image_name_list)
