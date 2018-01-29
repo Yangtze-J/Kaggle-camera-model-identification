@@ -34,7 +34,7 @@ parser.add_argument('-p', '--pooling', type=str, default='avg', help='Type of po
 parser.add_argument('-g', '--gpus', type=int, default=1, help='Number of GPUs to use')
 parser.add_argument('-cs', '--crop-size', type=int, default=221, help='Crop size')
 parser.add_argument('-me', '--max-epoch', type=int, default=500, help='Epoch to run')
-parser.add_argument('-dpo', '--dropout', type=float, default=0.2, help='Dropout rate for FC layers')
+parser.add_argument('-dpo', '--dropout', type=float, default=0.1, help='Dropout rate for FC layers')
 
 args = parser.parse_args()
 
@@ -86,12 +86,12 @@ def train(model_path=None, personal_model=None):
     if args.gpus >= 2:
         model = multi_gpu_model(model, gpus=args.gpus)
 
-    # opt = keras.optimizers.Adam(lr=0.001)
-    opt = keras.optimizers.Nadam(lr=0.002)
-    # opt = keras.optimizers.RMSprop(lr=0.001)
+    opt = keras.optimizers.Adam(lr=0.001)
+    # opt = keras.optimizers.Nadam(lr=0.002)
+    # # opt = keras.optimizers.RMSprop(lr=0.001)
     model.compile(optimizer=opt, loss='categorical_crossentropy', metrics=['accuracy'])
-    # Finish load model
-    model.summary()
+    # # Finish load model
+    # model.summary()
 
     p = Augmentor.Pipeline(DEFAULT_TRAIN_PATH)
     # clean not jpg image
@@ -153,14 +153,28 @@ def train(model_path=None, personal_model=None):
     log_results('bin_', acc, loss)
 
 
-def all_trainable(model_path):
+def change_trainable(model_path):
     model = load_model(model_path)
     for i, layer in enumerate(model.layers):
         print(i, layer.name, layer.trainable)
-        layer.trainable = True
+        layer.trainable = False
+
+    model.summary()
+    print(model.layers[-4].name)
+    x = Flatten()(model.layers[-4].output)
+    x = Dense(1024, activation='relu', name='fc1')(x)
+    x = Dropout(args.dropout, name='dropout_fc1')(x)
+    x = Dense(512, activation='relu', name='fc2')(x)
+    x = Dropout(args.dropout, name='dropout_fc2')(x)
+    x = Dense(128, activation='relu', name='fc3')(x)
+    x = Dropout(args.dropout, name='dropout_fc3')(x)
+    predictions = Dense(num_classes, activation='softmax')(x)
+    model = Model(inputs=model.input, outputs=predictions)
+
     for i, layer in enumerate(model.layers):
         print(i, layer.name, layer.trainable)
-    model.save(model_path)
+    model.summary()
+    model.save(DEFAULT_WEIGHT_PATH+'/Changed_Xception.h5')
 
 
 def debug2():
@@ -336,4 +350,4 @@ if __name__ == '__main__':
         assert args.model is not None, "Please load a model..."
         predict(args.model)
     elif args.command == "debug":
-        debug(args.model)
+        change_trainable(args.model)
