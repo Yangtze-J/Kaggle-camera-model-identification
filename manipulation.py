@@ -1,5 +1,5 @@
 
-from Operations import Operation
+from Augment.Operations import Operation
 import cv2
 import numpy as np
 import random
