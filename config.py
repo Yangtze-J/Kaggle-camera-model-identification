@@ -11,6 +11,8 @@ from keras.models import load_model
 import numpy as np
 from keras.utils import multi_gpu_model
 
+
+
 # Root directory of the project
 ROOT_DIR = os.getcwd()
 DEFAULT_WEIGHT_PATH = os.path.join(ROOT_DIR, "model")
