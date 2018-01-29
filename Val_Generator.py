@@ -74,9 +74,16 @@ def clean_train_for_jpg():
 
 def average_dataset():
     max_num = []
+    # Make main dir
     if os.path.exists(DEFAULT_AVG_PATH) is False:
         os.makedirs(DEFAULT_AVG_PATH)
     # print(label_list)
+    # Make sub dir
+    for cls_name in label_list:
+        if os.path.exists(DEFAULT_AVG_PATH + '/' + cls_name) is False:
+            os.makedirs(DEFAULT_AVG_PATH + '/' + cls_name)
+            print("Make dir: ", cls_name)
+
     for cls in label_list:
         max_num.append(len(os.listdir(DEFAULT_TRAIN_PATH+'/'+cls)))
     max_num = min(max_num)
