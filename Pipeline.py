@@ -15,8 +15,8 @@ from __future__ import (absolute_import, division,
 
 from builtins import *
 
-from Augmentor.Operations import *
-from Augmentor.ImageUtilities import scan_directory, scan, AugmentorImage
+from Operations import *
+from ImageUtilities import scan_directory, scan, AugmentorImage
 
 import os
 import sys
