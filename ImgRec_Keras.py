@@ -1,5 +1,9 @@
 from config import *
-from model import IceptionResnet_V2, model_create, InceptionV3, Xception, ResNet50
+from keras.applications import *
+from keras.models import Model
+from keras.layers import Dense, Dropout, GlobalAveragePooling2D, Input, Reshape, Flatten
+from model import model_create
+from manipulation import Opera
 
 
 # 	Class index: 0 Class label: HTC-1-M7
@@ -14,18 +18,80 @@ from model import IceptionResnet_V2, model_create, InceptionV3, Xception, ResNet
 # 	Class index: 9 Class label: iPhone-6
 
 
+# Parse command line arguments
+parser = argparse.ArgumentParser(description='Train Image Rec.')
+parser.add_argument("command",
+                    metavar="<command>",
+                    help="'train' or 'test' on Image Rec")
+parser.add_argument('-m', '--model', required=False,
+                    metavar="/path/to/my_model.h5",
+                    help="Path to my_model.h5 file")
+parser.add_argument('-cm', '--classifier', type=str, default='Xception', help='Base classifier model to use')
+parser.add_argument('-pm', required=False,
+                    metavar="Use personal model?",
+                    help="\'True\' or \'False\'")
+parser.add_argument('-p', '--pooling', type=str, default='avg', help='Type of pooling to use')
+parser.add_argument('-g', '--gpus', type=int, default=1, help='Number of GPUs to use')
+parser.add_argument('-cs', '--crop-size', type=int, default=221, help='Crop size')
+parser.add_argument('-me', '--max-epoch', type=int, default=500, help='Epoch to run')
+parser.add_argument('-dpo', '--dropout', type=float, default=0.1, help='Dropout rate for FC layers')
+
+args = parser.parse_args()
+
+CROP_SIZE = args.crop_size
+input_image_shape = (CROP_SIZE, CROP_SIZE, 3)
+MANIPULATIONS = ['jpg70', 'jpg90', 'gamma0.8', 'gamma1.2', 'bicubic0.5', 'bicubic0.8', 'bicubic1.5', 'bicubic2.0']
+
+
 def train(model_path=None, personal_model=None):
 
     if model_path is None:
         if personal_model is True:
             model = model_create()
+            model_name = "personal_model"
         else:
-            model = ResNet50()
+            classifier = globals()[args.classifier]
+            base_model = classifier(include_top=False,
+                                    weights='imagenet',
+                                    input_shape=input_image_shape)
+                                    # pooling=args.pooling if args.pooling != 'none' else None)
+            x = base_model.output
+            # x = GlobalAveragePooling2D()(x)
+            # x = Reshape((-1,))(x)
+            x = Flatten()(x)
+            # let's add a fully-connected layer
+            x = Dense(512, activation='relu', name='fc1')(x)
+            x = Dropout(args.dropout, name='dropout_fc1')(x)
+            x = Dense(128, activation='relu', name='fc2')(x)
+            x = Dropout(args.dropout, name='dropout_fc2')(x)
+            # x = Dense(2048, activation='relu')(x)
+            # and a logistic layer -- let's say we have num_classes classes
+            predictions = Dense(num_classes, activation='softmax')(x)
+            # # this is the model we will train
+            model = Model(inputs=base_model.input, outputs=predictions)
+            # first: train only the top layers (which were randomly initialized)
+            # i.e. freeze all convolutional Xception layers
+            for layer in base_model.layers:
+                layer.trainable = True
+            model.summary()
+            print(args.classifier + " Model Created")
+            model_name = args.classifier
+        last_epoch = 0
     else:
-        model = load_model(model_path)
+        model = load_model(model_path, compile=False)
+        match = re.search(r'model/(.*)-epoch:(\d+)-(\d+.\d+)-(\d+.\d+).h5', args.model)
+        model_name = match.group(1)
+        last_epoch = int(match.group(2))
+        print("Model name:{0}, last epoch:{1}".format(model_name, last_epoch))
+    if args.gpus >= 2:
+        model = multi_gpu_model(model, gpus=args.gpus)
 
-    # Finish load model
-    model.summary()
+    opt = keras.optimizers.Adam(lr=0.001)
+    # opt = keras.optimizers.Nadam(lr=0.002)
+    # # opt = keras.optimizers.RMSprop(lr=0.001)
+    model.compile(optimizer=opt, loss='categorical_crossentropy', metrics=['accuracy'])
+    # # Finish load model
+    # model.summary()
 
     p = Augmentor.Pipeline(DEFAULT_TRAIN_PATH)
     # clean not jpg image
@@ -37,31 +103,12 @@ def train(model_path=None, personal_model=None):
     width = input_image_shape[0]
     height = input_image_shape[1]
 
-    p.flip_top_bottom(probability=0.1)
+    # p.flip_top_bottom(probability=0.1)
     p.crop_by_size(probability=1, width=width, height=height, centre=False)
-
-    # You can view the status of pipeline using the `status()` function,
-    # which shows information regarding the number of classes in the pipeline,
-    # the number of images, and what operations have been added to the pipeline:
 
     p.status()
 
-    # ## Creating a Generator
-    #
-    # A generator will create images indefinitely,
-    # and we can use this generator as input into the model created above.
-    # The generator is created with a user-defined batch size,
-    # which we define here in a variable named `train_batch_size`.
-    # This is used later to define number of steps per epoch,
-    # so it is best to keep it stored as a variable.
-
     pg = p.keras_generator(batch_size=train_batch_size)
-
-    # The generator can now be used to created augmented data.
-    # In Python, generators are invoked using the `next()` function -
-    # the Augmentor generators will return images indefinitely,
-    # and so `next()` can be called as often as required.
-    #
 
     v = Augmentor.Pipeline(DEFAULT_VAL_PATH)
     # clean not jpg image
@@ -79,35 +126,126 @@ def train(model_path=None, personal_model=None):
     # images, labels = next(g)
 
     # len(p.augmentor_images)
-    iteration = 0
-    while True:
-        iteration += 1
-        print()
-        print('-' * 50)
-        print('Iteration', iteration)
-        # steps_per_epoch=len(p.augmentor_images) / train_batch_size
-        h = model.fit_generator(generator=pg, steps_per_epoch=len(p.augmentor_images)/train_batch_size,
-                                epochs=1, verbose=1,
-                                callbacks=[keras.callbacks.EarlyStopping(monitor='val_loss', patience=4,
-                                                                         verbose=1, mode='auto')],
-                                validation_data=vg, validation_steps=len(v.augmentor_images)/val_batch_size)
-        print('Model learning rate :', K.get_value(model.optimizer.lr))
-        acc = h.history['acc']
-        loss = h.history['loss']
-        if os.path.exists(DEFAULT_WEIGHT_PATH) is False:
-            os.makedirs(DEFAULT_WEIGHT_PATH)
-        model.save(DEFAULT_WEIGHT_PATH+"/new_model.h5")
-        print("Iteration{0}: ,saved model".format(iteration))
-        log_results('bin_', acc, loss)
+
+    print()
+    print('-' * 50)
+    # steps_per_epoch = len(p.augmentor_images) / train_batch_size
+    monitor = 'val_acc'
+    early_stop = keras.callbacks.EarlyStopping(monitor=monitor, patience=8, verbose=1, mode='max')
+    reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor=monitor, factor=0.5, patience=5, min_lr=1e-9, epsilon = 0.00001, verbose=1, mode='max')
+    save_model = keras.callbacks.ModelCheckpoint(DEFAULT_WEIGHT_PATH+"/"+model_name+
+                                                 "-epoch:"+"{epoch:02d}-{val_loss:.2f}-{val_acc:.2f}.h5",
+                                                 monitor=monitor, verbose=1,
+                                                 save_best_only=True, save_weights_only=False,
+                                                 mode='max', period=1)
+
+    h = model.fit_generator(generator=pg, steps_per_epoch=50,
+                            epochs=args.max_epoch, verbose=1,
+                            callbacks=[reduce_lr, save_model],
+                            validation_data=vg, validation_steps=len(v.augmentor_images)/val_batch_size,
+                            initial_epoch=last_epoch)
+    print('Model learning rate :', K.get_value(model.optimizer.lr))
+    acc = h.history['acc']
+    loss = h.history['loss']
+    if os.path.exists(DEFAULT_WEIGHT_PATH) is False:
+        os.makedirs(DEFAULT_WEIGHT_PATH)
+    # model.save(DEFAULT_WEIGHT_PATH+"/new_model.h5")
+    log_results('bin_', acc, loss)
 
 
-def debug(model_path):
+def change_trainable(model_path):
     model = load_model(model_path)
     for i, layer in enumerate(model.layers):
         print(i, layer.name, layer.trainable)
-        layer.trainable = True
+        layer.trainable = False
+
+    model.summary()
+    print(model.layers[-4].name)
+    x = Flatten()(model.layers[-4].output)
+    x = Dense(1024, activation='relu', name='fc1')(x)
+    x = Dropout(args.dropout, name='dropout_fc1')(x)
+    x = Dense(512, activation='relu', name='fc2')(x)
+    x = Dropout(args.dropout, name='dropout_fc2')(x)
+    x = Dense(128, activation='relu', name='fc3')(x)
+    x = Dropout(args.dropout, name='dropout_fc3')(x)
+    predictions = Dense(num_classes, activation='softmax')(x)
+    model = Model(inputs=model.input, outputs=predictions)
+
     for i, layer in enumerate(model.layers):
         print(i, layer.name, layer.trainable)
+    model.summary()
+    model.save(DEFAULT_WEIGHT_PATH+'/Changed_Xception.h5')
+
+
+def debug2():
+    p = Augmentor.Pipeline(DEFAULT_VAL_PATH)
+    # clean not jpg image
+    for augmentor_image in p.augmentor_images:
+        with Image.open(augmentor_image.image_path) as opened_image:
+            if opened_image.format is not 'JPEG':
+                p.augmentor_images.remove(augmentor_image)
+
+    width = input_image_shape[0]
+    height = input_image_shape[1]
+
+    manipu = Opera(probability=1, manipulation="random")
+    # manipu = Opera(probability=1, manipulation=MANIPULATIONS[0])
+
+    # p.flip_top_bottom(probability=0.1)
+    p.add_operation(manipu)
+    # because of bicubic operation, crop must be at least
+    p.crop_by_size(probability=1, width=1024, height=1024, centre=False)
+
+    p.status()
+
+    pg = p.keras_generator(batch_size=train_batch_size)
+    images, labels, origin = next(pg)
+    for i in range(len(images)):
+        img = Image.fromarray((images[i]*255).astype('uint8'), 'RGB')
+        img.show()
+        Ori = Image.fromarray((origin[i]*255).astype('uint8'), 'RGB')
+        Ori.show()
+    len(p.augmentor_images)
+
+
+def debug1():
+    # direct
+    img_name_list = os.listdir(DEFAULT_VAL_PATH)
+
+    for i, img_name in enumerate(img_name_list):
+        imgs = os.listdir(DEFAULT_VAL_PATH + "/" + img_name)
+        for imgg in imgs:
+            im1 = Image.open(DEFAULT_VAL_PATH + "/" + img_name+"/"+imgg)
+            im = np.asarray(im1).astype('float32')
+            im = im.astype('uint8')
+            im = Image.fromarray(im, 'RGB')
+            im1.show()
+            im.show()
+
+
+def debug():
+
+    keras.applications.densenet.DenseNet201(include_top=True, weights='imagenet', input_tensor=None, input_shape=None,
+                                            pooling=None, classes=1000)
+
+
+def add_one_dense(model_path):
+    model = load_model(model_path)
+    model.summary()
+
+    fc1 = model.layers[-2]
+    prediction = model.layers[-1]
+    fc1.name = 'dense_1'
+    prediction.name = 'prediction'
+    # let's add a fully-connected layer
+    x = Dense(1024, activation='relu', name='dense_2')(fc1.output)
+    # and a logistic layer -- let's say we have num_classes classes
+    pred = prediction(x)
+
+    # predictions = Dense(num_classes, activation='softmax')(x)
+    # # this is the model we will train
+    model = Model(inputs=model.input, outputs=pred)
+    model.summary()
     model.save(model_path)
 
 
@@ -120,7 +258,7 @@ def log_results(filename, acc_log, loss_log):
         wr = csv.writer(data_dump)
         for acc_item in acc_log:
             wr.writerow([acc_item])
-
+    import skimage.exposure
     with open(DEFAULT_LOG_PATH + '/' + filename + 'loss.csv', 'a', newline='') as lf:
         wr = csv.writer(lf)
         for loss_item in loss_log:
@@ -201,22 +339,8 @@ def predict(model_path):
 
 
 if __name__ == '__main__':
-    import argparse
-    # Parse command line arguments
-    parser = argparse.ArgumentParser(description='Train Image Rec.')
-    parser.add_argument("command",
-                        metavar="<command>",
-                        help="'train' or 'test' on Image Rec")
-    parser.add_argument('--model', required=False,
-                        metavar="/path/to/my_model.h5",
-                        help="Path to my_model.h5 file")
-    parser.add_argument('--pm', required=False,
-                        metavar="Use personal model?",
-                        help="\'True\' or \'False\'")
-    args = parser.parse_args()
     print("Command: ", args.command)
     print("Model: ", args.model)
-    print("Personal Model:", args.pm)
     if args.command == "train":
         train(model_path=args.model, personal_model=args.pm)
     elif args.command == "evaluate":
@@ -226,4 +350,4 @@ if __name__ == '__main__':
         assert args.model is not None, "Please load a model..."
         predict(args.model)
     elif args.command == "debug":
-        debug(args.model)
+        change_trainable(args.model)

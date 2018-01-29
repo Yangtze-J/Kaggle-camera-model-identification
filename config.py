@@ -1,6 +1,7 @@
 import os
+import argparse
 import Augmentor
-import os
+import re
 import csv
 import random
 from PIL import Image
@@ -8,6 +9,8 @@ import keras
 from keras import backend as K
 from keras.models import load_model
 import numpy as np
+from keras.utils import multi_gpu_model
+
 
 
 # Root directory of the project
@@ -18,10 +21,9 @@ DEFAULT_TEST_PATH = os.path.join(ROOT_DIR, "test")
 DEFAULT_LOG_PATH = os.path.join(ROOT_DIR, "log")
 DEFAULT_VAL_PATH = os.path.join(ROOT_DIR, "val")
 
-input_image_shape = (200, 200, 3)
 
-train_batch_size = 64
-val_batch_size = 64
+train_batch_size = 24
+val_batch_size = 24
 
 evaluate_size = 100
 pred_num_per_img = 10
