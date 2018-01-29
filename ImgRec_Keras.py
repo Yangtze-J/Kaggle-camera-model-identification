@@ -57,14 +57,19 @@ def train(model_path=None, personal_model=None):
                                     input_shape=input_image_shape)
                                     # pooling=args.pooling if args.pooling != 'none' else None)
             x = base_model.output
+            manipulated = Input(shape=(1,), name="manipulation")
+
             # x = GlobalAveragePooling2D()(x)
             # x = Reshape((-1,))(x)
             x = Flatten()(x)
+            x = concatenate([x, manipulated])
             # let's add a fully-connected layer
-            x = Dense(512, activation='relu', name='fc1')(x)
+            x = Dense(1024, activation='relu', name='fc1')(x)
             x = Dropout(args.dropout, name='dropout_fc1')(x)
-            x = Dense(128, activation='relu', name='fc2')(x)
+            x = Dense(512, activation='relu', name='fc2')(x)
             x = Dropout(args.dropout, name='dropout_fc2')(x)
+            x = Dense(128, activation='relu', name='fc3')(x)
+            x = Dropout(args.dropout, name='dropout_fc3')(x)
             # x = Dense(2048, activation='relu')(x)
             # and a logistic layer -- let's say we have num_classes classes
             predictions = Dense(num_classes, activation='softmax')(x)
@@ -225,7 +230,7 @@ def debug2():
     # p.flip_top_bottom(probability=0.1)
     p.add_operation(manipu)
     # because of bicubic operation, crop must be at least
-    p.crop_by_size(probability=1, width=1024, height=1024, centre=False)
+    p.crop_by_size(probability=1, width=128, height=128, centre=False)
 
     p.status()
 
