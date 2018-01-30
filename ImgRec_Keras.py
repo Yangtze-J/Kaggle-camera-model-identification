@@ -93,6 +93,19 @@ def train(model_path=None, personal_model=None):
     if args.gpus >= 2:
         model = multi_gpu_model(model, gpus=args.gpus)
 
+    model.layers[-1].trainable = True
+    model.layers[-2].trainable = True
+    model.layers[-3].trainable = True
+    model.layers[-4].trainable = True
+    model.layers[-5].trainable = True
+    model.layers[-6].trainable = True
+    model.layers[-7].trainable = True
+    model.layers[-8].trainable = True
+    model.layers[-9].trainable = True
+    # for layer in model.layers:
+    #     print(layer.name, layer.trainable)
+
+    model.summary()
     opt = keras.optimizers.Adam(lr=0.001)
     # opt = keras.optimizers.Nadam(lr=0.002)
     # # opt = keras.optimizers.RMSprop(lr=0.001)
