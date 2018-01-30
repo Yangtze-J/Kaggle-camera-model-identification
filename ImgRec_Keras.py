@@ -35,7 +35,7 @@ parser.add_argument('-p', '--pooling', type=str, default='avg', help='Type of po
 parser.add_argument('-g', '--gpus', type=int, default=1, help='Number of GPUs to use')
 parser.add_argument('-cs', '--crop-size', type=int, default=221, help='Crop size')
 parser.add_argument('-me', '--max-epoch', type=int, default=500, help='Epoch to run')
-parser.add_argument('-dpo', '--dropout', type=float, default=0.1, help='Dropout rate for FC layers')
+parser.add_argument('-dpo', '--dropout', type=float, default=0.3, help='Dropout rate for FC layers')
 parser.add_argument('-tp', '--test-per', type=int, default=10, help='test per image')
 
 
@@ -60,18 +60,18 @@ def train(model_path=None, personal_model=None):
                                     # pooling=args.pooling if args.pooling != 'none' else None)
             x = base_model.output
             manipulated = Input(shape=(1,), name="manipulation")
-
+            y = Dense(48, activation='relu', name='fc_manipu')(manipulated)
             # x = GlobalAveragePooling2D()(x)
             # x = Reshape((-1,))(x)
             x = Flatten()(x)
-            x = concatenate([x, manipulated])
             # let's add a fully-connected layer
-            x = Dense(1024, activation='relu', name='fc1')(x)
+            x = Dense(2048, activation='relu', name='fc1')(x)
             x = Dropout(args.dropout, name='dropout_fc1')(x)
-            x = Dense(512, activation='relu', name='fc2')(x)
+            x = Dense(1024, activation='relu', name='fc2')(x)
             x = Dropout(args.dropout, name='dropout_fc2')(x)
-            x = Dense(128, activation='relu', name='fc3')(x)
+            x = Dense(256, activation='relu', name='fc3')(x)
             x = Dropout(args.dropout, name='dropout_fc3')(x)
+            x = concatenate([x, y])
             # x = Dense(2048, activation='relu')(x)
             # and a logistic layer -- let's say we have num_classes classes
             predictions = Dense(num_classes, activation='softmax')(x)
@@ -260,7 +260,44 @@ def predict(model_path):
     print("Finished")
 
 # ## Summary
-# 
+#
+
+
+def add_manipulation(model_path):
+    model = load_model(model_path)
+    for i, layer in enumerate(model.layers):
+        print(i, layer.name, layer.trainable)
+        layer.trainable = False
+    # input_image = Input(shape=(CROP_SIZE, CROP_SIZE, 3))
+    manipulated = Input(shape=(1,), name="manipulation")
+    y = Dense(48, activation='relu', name='fc_manipu')(manipulated)
+    x = model.layers[-9]
+    print(x.name)
+    print(model.layers[-8].name)
+    x = Flatten()(x.output)
+    x = Dense(2048, activation='relu', name='fc1')(x)
+    x = Dropout(args.dropout, name='dropout_fc1')(x)
+    x = Dense(1024, activation='relu', name='fc2')(x)
+    x = Dropout(args.dropout, name='dropout_fc2')(x)
+    x = Dense(256, activation='relu', name='fc3')(x)
+    x = Dropout(args.dropout, name='dropout_fc3')(x)
+    x = concatenate([x, y])
+    # x = Dense(2048, activation='relu')(x)
+    # and a logistic layer -- let's say we have num_classes classes
+    predictions = Dense(num_classes, activation='softmax')(x)
+    # drop1 = model.layers[-6](x)
+    # fc2 = model.layers[-5](drop1)
+    # drop2 = model.layers[-4](fc2)
+    # fc3 = model.layers[-3](drop2)
+    # drop3 = model.layers[-2](fc3)
+    # prediction = model.layers[-1](drop3)
+    model = Model(inputs=(model.input, manipulated), outputs=predictions)
+    plot_model(model, to_file='manipulated_model.png')
+    model.summary()
+    for i, layer in enumerate(model.layers):
+        print(i, layer.name, layer.trainable)
+    model.save(DEFAULT_WEIGHT_PATH+'/XceptionManipuu.h5')
+
 # Using Augmentor with Keras means only that you need to create a generator
 # when you are finished creating your pipeline.
 # This has the advantage that no images need to be saved to disk and are augmented on the fly.
@@ -277,6 +314,6 @@ if __name__ == '__main__':
     elif args.command == "predict":
         assert args.model is not None, "Please load a model..."
         predict(args.model)
-    # elif args.command == "debug":
-        # add_manipulation(args.model)
+    elif args.command == "debug":
+        add_manipulation(args.model)
         # len_predict()
