@@ -36,6 +36,8 @@ parser.add_argument('-g', '--gpus', type=int, default=1, help='Number of GPUs to
 parser.add_argument('-cs', '--crop-size', type=int, default=221, help='Crop size')
 parser.add_argument('-me', '--max-epoch', type=int, default=500, help='Epoch to run')
 parser.add_argument('-dpo', '--dropout', type=float, default=0.1, help='Dropout rate for FC layers')
+parser.add_argument('-tp', '--test-per', type=int, default=10, help='test per image')
+
 
 args = parser.parse_args()
 
@@ -94,16 +96,16 @@ def train(model_path=None, personal_model=None):
         model = multi_gpu_model(model, gpus=args.gpus)
 
     model.layers[-1].trainable = True
-    model.layers[-2].trainable = True
+    # model.layers[-2].trainable = True
     model.layers[-3].trainable = True
-    model.layers[-4].trainable = True
-    model.layers[-5].trainable = True
-    model.layers[-6].trainable = True
-    model.layers[-7].trainable = True
-    model.layers[-8].trainable = True
-    model.layers[-9].trainable = True
+    # model.layers[-4].trainable = True
+    # model.layers[-5].trainable = True
+    # model.layers[-6].trainable = True
+    # model.layers[-7].trainable = True
+    # model.layers[-8].trainable = True
+    # model.layers[-9].trainable = True
     # for layer in model.layers:
-    #     print(layer.name, layer.trainable)
+        # print(layer.name, layer.trainable)
 
     model.summary()
     opt = keras.optimizers.Adam(lr=0.001)
@@ -231,7 +233,7 @@ def predict(model_path):
         # Zero samples list
         pred_img_list = []
         # Generate random samples from every test image.
-        for _ in range(pred_num_per_img):
+        for _ in range(args.test_per):
             x = random.randint(0, w - width - 1)
             y = random.randint(0, h - height - 1)
             img = im.crop((x, y, x+width, y+width))
@@ -242,7 +244,7 @@ def predict(model_path):
         pred_img_list = np.asarray(pred_img_list)
         pred_img_list = pred_img_list.astype('float32')
         pred_img_list = pred_img_list/255
-        pred = model.predict(x=(pred_img_list, original_manipulated), batch_size=pred_num_per_img, verbose=1)
+        pred = model.predict(x=(pred_img_list, original_manipulated), batch_size=args.test_per, verbose=1)
         pred = np.argmax(np.bincount(np.argmax(pred, axis=1)))
 
         # Append result and image name
