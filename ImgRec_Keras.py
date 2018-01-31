@@ -59,6 +59,10 @@ def train(model_path=None, personal_model=None):
                                     input_shape=input_image_shape)
                                     # pooling=args.pooling if args.pooling != 'none' else None)
             x = base_model.output
+            for i, layer in enumerate(base_model.layers):
+                print(i, layer.name, layer.trainable)
+                layer.trainable = False
+
             manipulated = Input(shape=(1,), name="manipulation")
             y = Dense(48, activation='relu', name='fc_manipu')(manipulated)
             # x = GlobalAveragePooling2D()(x)
@@ -79,8 +83,8 @@ def train(model_path=None, personal_model=None):
             model = Model(inputs=(base_model.input, manipulated), outputs=predictions)
             # first: train only the top layers (which were randomly initialized)
             # i.e. freeze all convolutional Xception layers
-            for layer in base_model.layers:
-                layer.trainable = True
+            # for layer in base_model.layers:
+            #     layer.trainable = True
             model.summary()
             print(args.classifier + " Model Created")
             model_name = args.classifier
