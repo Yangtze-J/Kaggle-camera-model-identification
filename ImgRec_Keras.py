@@ -64,18 +64,18 @@ def train(model_path=None, personal_model=None):
                 layer.trainable = False
 
             manipulated = Input(shape=(1,), name="manipulation")
-            y = Dense(48, activation='relu', name='fc_manipu')(manipulated)
+            # y = Dense(48, activation='relu', name='fc_manipu')(manipulated)
             # x = GlobalAveragePooling2D()(x)
-            # x = Reshape((-1,))(x)
-            x = Flatten()(x)
+            x = Reshape((-1,))(x)
+            # x = Flatten()(x)
             # let's add a fully-connected layer
-            x = Dense(2048, activation='relu', name='fc1')(x)
-            x = Dropout(args.dropout, name='dropout_fc1')(x)
-            x = Dense(1024, activation='relu', name='fc2')(x)
+            # x = Dense(2048, activation='relu', name='fc1')(x)
+            # x = Dropout(args.dropout, name='dropout_fc1')(x)
+            x = Dense(512, activation='relu', name='fc2')(x)
             x = Dropout(args.dropout, name='dropout_fc2')(x)
-            x = Dense(256, activation='relu', name='fc3')(x)
+            x = Dense(128, activation='relu', name='fc3')(x)
             x = Dropout(args.dropout, name='dropout_fc3')(x)
-            x = concatenate([x, y])
+            x = concatenate([x, manipulated])
             # x = Dense(2048, activation='relu')(x)
             # and a logistic layer -- let's say we have num_classes classes
             predictions = Dense(num_classes, activation='softmax')(x)
@@ -112,9 +112,9 @@ def train(model_path=None, personal_model=None):
         # print(layer.name, layer.trainable)
 
     model.summary()
-    opt = keras.optimizers.Adam(lr=0.001)
+    # opt = keras.optimizers.Adam(lr=0.001)
     # opt = keras.optimizers.Nadam(lr=0.002)
-    # # opt = keras.optimizers.RMSprop(lr=0.001)
+    opt = keras.optimizers.RMSprop(lr=0.001)
     model.compile(optimizer=opt, loss='categorical_crossentropy', metrics=['accuracy'])
     # # Finish load model
     # model.summary()
