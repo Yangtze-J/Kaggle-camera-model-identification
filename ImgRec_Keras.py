@@ -95,9 +95,9 @@ def train(model_path=None, personal_model=None):
     if args.gpus >= 2:
         model = multi_gpu_model(model, gpus=args.gpus)
 
-    model.layers[-1].trainable = True
+    # model.layers[-1].trainable = True
     # model.layers[-2].trainable = True
-    model.layers[-3].trainable = True
+    # model.layers[-3].trainable = True
     # model.layers[-4].trainable = True
     # model.layers[-5].trainable = True
     # model.layers[-6].trainable = True
@@ -271,17 +271,18 @@ def add_manipulation(model_path):
     # input_image = Input(shape=(CROP_SIZE, CROP_SIZE, 3))
     manipulated = Input(shape=(1,), name="manipulation")
     y = Dense(48, activation='relu', name='fc_manipu')(manipulated)
-    x = model.layers[-9]
-    print(x.name)
-    print(model.layers[-8].name)
-    x = Flatten()(x.output)
-    x = Dense(2048, activation='relu', name='fc1')(x)
-    x = Dropout(args.dropout, name='dropout_fc1')(x)
-    x = Dense(1024, activation='relu', name='fc2')(x)
-    x = Dropout(args.dropout, name='dropout_fc2')(x)
-    x = Dense(256, activation='relu', name='fc3')(x)
-    x = Dropout(args.dropout, name='dropout_fc3')(x)
+    x = model.layers[-3].output
+    # print(x.name)
+    # print(model.layers[-8].name)
+    # x = Flatten()(x.output)
+    # x = Dense(2048, activation='relu', name='fc1')(x)
+    # x = Dropout(args.dropout, name='dropout_fc1')(x)
+    # x = Dense(1024, activation='relu', name='fc2')(x)
+    # x = Dropout(args.dropout, name='dropout_fc2')(x)
+    # x = Dense(256, activation='relu', name='fc3')(x)
+    # x = Dropout(args.dropout, name='dropout_fc3')(x)
     x = concatenate([x, y])
+    x = Dropout(args.dropout, name='dropout_fc3')(x)
     # x = Dense(2048, activation='relu')(x)
     # and a logistic layer -- let's say we have num_classes classes
     predictions = Dense(num_classes, activation='softmax')(x)
@@ -296,7 +297,7 @@ def add_manipulation(model_path):
     model.summary()
     for i, layer in enumerate(model.layers):
         print(i, layer.name, layer.trainable)
-    model.save(DEFAULT_WEIGHT_PATH+'/XceptionManipuu.h5')
+    model.save(DEFAULT_WEIGHT_PATH+'/XceptionLM.h5')
 
 # Using Augmentor with Keras means only that you need to create a generator
 # when you are finished creating your pipeline.
