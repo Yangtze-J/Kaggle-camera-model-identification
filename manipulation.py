@@ -76,5 +76,5 @@ class Opera(Operation):
         else:
             assert False
 
-        manipulated = 1
+        manipulated = 0.8
         return image, manipulated

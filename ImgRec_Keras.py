@@ -88,6 +88,8 @@ def train(model_path=None, personal_model=None):
             model.summary()
             print(args.classifier + " Model Created")
             model_name = args.classifier
+            for i, layer in enumerate(model.layers):
+                print(i, layer.name, layer.trainable)
         last_epoch = 0
     else:
         model = load_model(model_path, compile=False)
@@ -112,9 +114,9 @@ def train(model_path=None, personal_model=None):
         # print(layer.name, layer.trainable)
 
     model.summary()
-    # opt = keras.optimizers.Adam(lr=0.001)
+    opt = keras.optimizers.Adam(lr=0.001)
     # opt = keras.optimizers.Nadam(lr=0.002)
-    opt = keras.optimizers.RMSprop(lr=0.001)
+    # opt = keras.optimizers.RMSprop(lr=0.001)
     model.compile(optimizer=opt, loss='categorical_crossentropy', metrics=['accuracy'])
     # # Finish load model
     # model.summary()
@@ -157,16 +159,17 @@ def train(model_path=None, personal_model=None):
     print()
     print('-' * 50)
     # steps_per_epoch = len(p.augmentor_images) / train_batch_size
-    monitor = 'val_acc'
-    early_stop = keras.callbacks.EarlyStopping(monitor=monitor, patience=8, verbose=1, mode='max')
-    reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor=monitor, factor=0.5, patience=5, min_lr=1e-9, epsilon = 0.00001, verbose=1, mode='max')
+    # monitor = 'val_acc'
+    monitor = 'val_loss'
+    early_stop = keras.callbacks.EarlyStopping(monitor=monitor, patience=8, verbose=1, mode='auto')
+    reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor=monitor, factor=0.5, patience=5, min_lr=1e-9, epsilon = 0.00001, verbose=1, mode='auto')
     save_model = keras.callbacks.ModelCheckpoint(DEFAULT_WEIGHT_PATH+"/"+model_name+
                                                  "-epoch:"+"{epoch:02d}-{val_loss:.2f}-{val_acc:.2f}.h5",
-                                                 monitor=monitor, verbose=1,
+                                                 monitor='val_acc', verbose=1,
                                                  save_best_only=True, save_weights_only=False,
-                                                 mode='max', period=1)
+                                                 mode='auto', period=1)
 
-    h = model.fit_generator(generator=pg, steps_per_epoch=50,
+    h = model.fit_generator(generator=pg, steps_per_epoch = len(p.augmentor_images) / train_batch_size,
                             epochs=args.max_epoch, verbose=1,
                             callbacks=[reduce_lr, save_model],
                             validation_data=vg, validation_steps=len(v.augmentor_images)/val_batch_size,
@@ -231,7 +234,7 @@ def predict(model_path):
         w, h = im.size
         width = input_image_shape[0]
         height = input_image_shape[1]
-        original_manipulated = np.int32([1 if img_name.find('manip') != -1 else 0]*10)
+        original_manipulated = np.int32([0.8 if img_name.find('manip') != -1 else 0.2]*args.test_per)
         # print(img_name, original_manipulated)
 
         # Zero samples list
