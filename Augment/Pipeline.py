@@ -79,7 +79,7 @@ class Pipeline(object):
         self.class_labels = []
 
         # Added by bin
-        self.manipulated = 0
+        self.manipulated = 0.2
         # End added
 
         # Now we populate some fields, which we may need to do again later if another
@@ -391,7 +391,7 @@ class Pipeline(object):
 
             X = X.astype('float32')
             y = y.astype('int32')
-            m = m.astype('int32')
+            m = m.astype('float32')
             X /= 255
 
             yield ([X, m], [y])

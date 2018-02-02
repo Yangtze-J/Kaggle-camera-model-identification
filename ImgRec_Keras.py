@@ -231,7 +231,7 @@ def predict(model_path):
         w, h = im.size
         width = input_image_shape[0]
         height = input_image_shape[1]
-        original_manipulated = np.int32([1 if img_name.find('manip') != -1 else 0]*10)
+        original_manipulated = np.int32([0.8 if img_name.find('manip') != -1 else 0.2]*args.test_per)
         # print(img_name, original_manipulated)
 
         # Zero samples list
@@ -248,7 +248,7 @@ def predict(model_path):
         pred_img_list = np.asarray(pred_img_list)
         pred_img_list = pred_img_list.astype('float32')
         pred_img_list = pred_img_list/255
-        pred = model.predict(x=(pred_img_list, original_manipulated), batch_size=args.test_per, verbose=1)
+        pred = model.predict(x=[pred_img_list, original_manipulated], batch_size=args.test_per, verbose=1)
         pred = np.argmax(np.bincount(np.argmax(pred, axis=1)))
 
         # Append result and image name
