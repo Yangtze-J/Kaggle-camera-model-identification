@@ -231,7 +231,7 @@ def predict(model_path):
         w, h = im.size
         width = input_image_shape[0]
         height = input_image_shape[1]
-        original_manipulated = np.int32([1 if img_name.find('manip') != -1 else 0]*args.test_per)
+        original_manipulated = np.int32([0.8 if img_name.find('manip') != -1 else 0.2]*args.test_per)
         # print(img_name, original_manipulated)
 
         # Zero samples list
