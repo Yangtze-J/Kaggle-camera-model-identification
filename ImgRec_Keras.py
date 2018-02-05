@@ -59,9 +59,9 @@ def train(model_path=None, personal_model=None):
                                     input_shape=input_image_shape)
                                     # pooling=args.pooling if args.pooling != 'none' else None)
             x = base_model.output
-            for i, layer in enumerate(base_model.layers):
-                print(i, layer.name, layer.trainable)
-                layer.trainable = False
+            # for i, layer in enumerate(base_model.layers):
+            #     print(i, layer.name, layer.trainable)
+            #     layer.trainable = False
 
             manipulated = Input(shape=(1,), name="manipulation")
             # y = Dense(48, activation='relu', name='fc_manipu')(manipulated)
