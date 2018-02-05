@@ -55,7 +55,7 @@ def train(model_path=None, personal_model=None):
         else:
             classifier = globals()[args.classifier]
             base_model = classifier(include_top=False,
-                                    weights='imagenet',
+                                    weights=None,
                                     input_shape=input_image_shape)
                                     # pooling=args.pooling if args.pooling != 'none' else None)
             x = base_model.output
@@ -231,7 +231,7 @@ def predict(model_path):
         w, h = im.size
         width = input_image_shape[0]
         height = input_image_shape[1]
-        original_manipulated = np.int32([0.8 if img_name.find('manip') != -1 else 0.2]*args.test_per)
+        original_manipulated = np.int32([1 if img_name.find('manip') != -1 else 0]*args.test_per)
         # print(img_name, original_manipulated)
 
         # Zero samples list
