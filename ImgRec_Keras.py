@@ -46,11 +46,14 @@ MANIPULATIONS = ['jpg70', 'jpg90', 'gamma0.8', 'gamma1.2', 'bicubic0.5', 'bicubi
 def train(model_path=None, personal_model=None):
 
     if model_path is None:
+#       personal model or download others
         if personal_model is True:
             model = model_create()
             model_name = "personal_model"
         else:
+#           choose model from keras applications
             classifier = globals()[args.classifier]
+#           include_top false, do not use full connection layer
             base_model = classifier(include_top=False,
                                     weights='imagenet',
                                     input_shape=input_image_shape)
@@ -85,14 +88,14 @@ def train(model_path=None, personal_model=None):
         print("Model name:{0}, last epoch:{1}".format(model_name, last_epoch))
     if args.gpus >= 2:
         model = multi_gpu_model(model, gpus=args.gpus)
-
+#   keras optimizer
     opt = keras.optimizers.Adam(lr=0.001)
     # opt = keras.optimizers.Nadam(lr=0.002)
     # # opt = keras.optimizers.RMSprop(lr=0.001)
     model.compile(optimizer=opt, loss='categorical_crossentropy', metrics=['accuracy'])
     # # Finish load model
     # model.summary()
-
+#   Augmentor is a library that works for data augment
     p = Augmentor.Pipeline(DEFAULT_TRAIN_PATH)
     # clean not jpg image
     for augmentor_image in p.augmentor_images:
@@ -102,14 +105,14 @@ def train(model_path=None, personal_model=None):
 
     width = input_image_shape[0]
     height = input_image_shape[1]
-
+    # pre processing 
     # p.flip_top_bottom(probability=0.1)
     p.crop_by_size(probability=1, width=width, height=height, centre=False)
 
     p.status()
-
+#   generate a generator, pg is for train
     pg = p.keras_generator(batch_size=train_batch_size)
-
+#   vg is for test generator
     v = Augmentor.Pipeline(DEFAULT_VAL_PATH)
     # clean not jpg image
     for augmentor_image in v.augmentor_images:
@@ -130,6 +133,7 @@ def train(model_path=None, personal_model=None):
     print()
     print('-' * 50)
     # steps_per_epoch = len(p.augmentor_images) / train_batch_size
+#     keras callbacks
     monitor = 'val_acc'
     early_stop = keras.callbacks.EarlyStopping(monitor=monitor, patience=8, verbose=1, mode='max')
     reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor=monitor, factor=0.5, patience=5, min_lr=1e-9, epsilon = 0.00001, verbose=1, mode='max')
@@ -138,7 +142,7 @@ def train(model_path=None, personal_model=None):
                                                  monitor=monitor, verbose=1,
                                                  save_best_only=True, save_weights_only=False,
                                                  mode='max', period=1)
-
+# training start
     h = model.fit_generator(generator=pg, steps_per_epoch=50,
                             epochs=args.max_epoch, verbose=1,
                             callbacks=[reduce_lr, save_model],
@@ -147,6 +151,7 @@ def train(model_path=None, personal_model=None):
     print('Model learning rate :', K.get_value(model.optimizer.lr))
     acc = h.history['acc']
     loss = h.history['loss']
+#     save log
     if os.path.exists(DEFAULT_WEIGHT_PATH) is False:
         os.makedirs(DEFAULT_WEIGHT_PATH)
     # model.save(DEFAULT_WEIGHT_PATH+"/new_model.h5")
